@@ -2,7 +2,7 @@ library(phyloseq)
 library(tidyverse)
 library("FSA")
 
-#############Just test Line###################
+#############Testing Line###################
 
 ########################################################################
 ###########################IMPORT DATA##################################
@@ -80,6 +80,10 @@ physeq
 
 #	Now,	continue	to	analysis	in	phyloseq!
 
+
+
+
+########Ready for Microbiome########
 
 
 
