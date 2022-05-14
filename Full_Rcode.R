@@ -167,24 +167,24 @@ ggsave("alpha_div/Chao1.png", width=3, height=3, units="in", device = "png")
 
 
 ##########################################
-############### Chao1 ##############
+############### Shannon ##############
 ##########################################
 
-dunn_Chao1 <- dunn_test(data = richness, Chao1 ~ group)
+dunn_Shannon <- dunn_test(data = richness, Shannon ~ group)
 
 #draw barplot
 
-ggplot(data=richness, aes(x=group, y=Chao1)) +
+ggplot(data=richness, aes(x=group, y=Shannon)) +
   geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
-  labs(title= 'Chao1', x= ' ', y= ''
+  labs(title= 'Shannon', x= ' ', y= ''
        # , tag = "A"
   ) +
   geom_point(aes(fill=group, col=group))+
   #  geom_jitter()+
-  ylim (75, 220) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "anova", label.y = 210) +  # Add global p-value
+  ylim (1.5, 4.5) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  stat_compare_means(method = "anova", label.y = 4.4) +  # Add global p-value
   stat_pvalue_manual(dunn, 
-                     y.position = c(180, 200, 190)) +
+                     y.position = c(3.8, 4.2, 4.0)) +
   scale_color_brewer(palette = 'Pastel1')+
   scale_fill_brewer(palette = "Pastel1")+
   theme_bw()+
@@ -198,26 +198,85 @@ ggplot(data=richness, aes(x=group, y=Chao1)) +
         legend.position= "none",
   )
 
-ggsave("alpha_div/Chao1.png", width=3, height=3, units="in", device = "png")
-############### inverse simpson ##############
+ggsave("alpha_div/Shannon.png", width=3, height=3, units="in", device = "png")
+
+
+
+
+##########################################
+############### InvSimpson ##############
+##########################################
+
+dunn_InvSimpson <- dunn_test(data = richness, InvSimpson ~ group)
 
 #draw barplot
-ggplot(data=richness, aes(x=META$group, y=InvSimpson)) +
-  geom_boxplot(fill=c("blue","red","green")) +
-  labs(title= 'InvSimpson', x= ' ', y= '', tag = "A") +
-  geom_point()
 
-#one way anova
-one.way <- aov(InvSimpson ~ META$group, data = richness)
-summary(one.way)
+ggplot(data=richness, aes(x=group, y=InvSimpson)) +
+  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
+  labs(title= 'Inverse Simpson', x= ' ', y= ''
+       # , tag = "A"
+  ) +
+  geom_point(aes(fill=group, col=group))+
+  #  geom_jitter()+
+  ylim (1.5, 25) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  stat_compare_means(method = "anova", label.y = 24) +  # Add global p-value
+  stat_pvalue_manual(dunn, 
+                     y.position = c(18, 22, 20)) +
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position= "none",
+  )
 
-kruskal.test(InvSimpson ~ META$group, data = richness)
+ggsave("alpha_div/InvSimpson.png", width=3, height=3, units="in", device = "png")
 
-#pairwise.wilcox.test(chao1_data$chao1, chao1_data$Group,
-#                     p.adjust.method = "BH")
 
-#dunnTest(chao1 ~ Group, data = chao1_data,
-#         method="bonferroni")
+
+
+##########################################
+############### Fisher ##############
+##########################################
+
+dunn_Fisher <- dunn_test(data = richness, Fisher ~ group)
+
+#draw barplot
+
+ggplot(data=richness, aes(x=group, y=Fisher)) +
+  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
+  labs(title= 'Fisher', x= ' ', y= ''
+       # , tag = "A"
+  ) +
+  geom_point(aes(fill=group, col=group))+
+  #  geom_jitter()+
+  ylim (10, 30) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  stat_compare_means(method = "anova", label.y = 29) +  # Add global p-value
+  stat_pvalue_manual(dunn, 
+                     y.position = c(26, 28, 27)) +
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position= "none",
+  )
+
+ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
+
+
+
+
 
 ########################################################################
 ##################### relative abundance #############################
