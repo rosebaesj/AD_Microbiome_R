@@ -102,6 +102,137 @@ rphyseq <- rarefy_even_depth(physeq) #기본값이 최솟값으로 맞추는 것
 rphyseq2 <- rarefy_even_depth(physeq, sample.size = 13410) #기본값이 최솟값으로 맞추는 것
 
 
+
+
+
+########################################################################
+##################### relative abundance #############################
+########################################################################
+
+#relative abundance로 변환
+relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #relative abundance 구하는 것으로 예상
+
+
+
+########################################################################
+#****stacked bar graph of relative abundance***#
+########################################################################
+
+#***group 합ㄱ치는게 안됨 ***#
+plot_bar(relaphyseq, fill = "Phylum") +
+  geom_bar(aes(color = Phylum, fill = Phylum), stat = "identity", position = "stack") +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+
+plot_bar(relaphyseq, fill = "Class") +
+  geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack") +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+plot_bar(relaphyseq, fill = "Order") +
+  geom_bar(aes(color = Order, fill = Order), stat = "identity", position = "stack") +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  #scale_color_brewer(palette = 'Pastel1')+
+  #scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+plot_bar(relaphyseq, fill = "Family") +
+  geom_bar(aes(color = Family, fill = Family), stat = "identity", position = "stack") +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  #scale_color_brewer(palette = 'Pastel1')+
+  #scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+#****stacked bar graph of relative abundance PER GROUP ***#
+plot_bar(relaphyseq, fill = "Class") +
+  geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack", 
+           group = META$group) +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ########################################################################
 ##################### alpha diversity #############################
 ########################################################################
@@ -116,6 +247,8 @@ plot_richness(rphyseq, sortby = META$group)
 
 ##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
 pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
+
+
 
 ##########################################
 ############### Chao1 ##############
@@ -167,24 +300,24 @@ ggsave("alpha_div/Chao1.png", width=3, height=3, units="in", device = "png")
 
 
 ##########################################
-############### Chao1 ##############
+############### Shannon ##############
 ##########################################
 
-dunn_Chao1 <- dunn_test(data = richness, Chao1 ~ group)
+dunn_Shannon <- dunn_test(data = richness, Shannon ~ group)
 
 #draw barplot
 
-ggplot(data=richness, aes(x=group, y=Chao1)) +
+ggplot(data=richness, aes(x=group, y=Shannon)) +
   geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
-  labs(title= 'Chao1', x= ' ', y= ''
+  labs(title= 'Shannon', x= ' ', y= ''
        # , tag = "A"
   ) +
   geom_point(aes(fill=group, col=group))+
   #  geom_jitter()+
-  ylim (75, 220) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "anova", label.y = 210) +  # Add global p-value
+  ylim (1.5, 4.5) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  stat_compare_means(method = "anova", label.y = 4.4) +  # Add global p-value
   stat_pvalue_manual(dunn, 
-                     y.position = c(180, 200, 190)) +
+                     y.position = c(3.8, 4.2, 4.0)) +
   scale_color_brewer(palette = 'Pastel1')+
   scale_fill_brewer(palette = "Pastel1")+
   theme_bw()+
@@ -198,43 +331,82 @@ ggplot(data=richness, aes(x=group, y=Chao1)) +
         legend.position= "none",
   )
 
-ggsave("alpha_div/Chao1.png", width=3, height=3, units="in", device = "png")
-############### inverse simpson ##############
+ggsave("alpha_div/Shannon.png", width=3, height=3, units="in", device = "png")
+
+
+
+
+##########################################
+############### InvSimpson ##############
+##########################################
+
+dunn_InvSimpson <- dunn_test(data = richness, InvSimpson ~ group)
 
 #draw barplot
-ggplot(data=richness, aes(x=META$group, y=InvSimpson)) +
-  geom_boxplot(fill=c("blue","red","green")) +
-  labs(title= 'InvSimpson', x= ' ', y= '', tag = "A") +
-  geom_point()
 
-#one way anova
-one.way <- aov(InvSimpson ~ META$group, data = richness)
-summary(one.way)
+ggplot(data=richness, aes(x=group, y=InvSimpson)) +
+  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
+  labs(title= 'Inverse Simpson', x= ' ', y= ''
+       # , tag = "A"
+  ) +
+  geom_point(aes(fill=group, col=group))+
+  #  geom_jitter()+
+  ylim (1.5, 25) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  stat_compare_means(method = "anova", label.y = 24) +  # Add global p-value
+  stat_pvalue_manual(dunn, 
+                     y.position = c(18, 22, 20)) +
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position= "none",
+  )
 
-kruskal.test(InvSimpson ~ META$group, data = richness)
-
-#pairwise.wilcox.test(chao1_data$chao1, chao1_data$Group,
-#                     p.adjust.method = "BH")
-
-#dunnTest(chao1 ~ Group, data = chao1_data,
-#         method="bonferroni")
-
-########################################################################
-##################### relative abundance #############################
-########################################################################
-#*******모름 아직 못함******
-# works: from phyloseq object to relative abundance otu table
-table(tax_table(rphyseq)[, "Phylum"])
-
-rel_abund <- transform_sample_counts(rphyseq, function(x){x / sum(x)})
-
-phylum_rel <- tax_glom(rel_abund, "Phylum")
-taxa_names(ps_phylum_rel) <- tax_table(phylum_rel)[, "Phylum"]
-rel_table <- as(otu_table(ps_phylum_rel), "matrix")
+ggsave("alpha_div/InvSimpson.png", width=3, height=3, units="in", device = "png")
 
 
 
-##아래에 있음
+
+##########################################
+############### Fisher ##############
+##########################################
+
+dunn_Fisher <- dunn_test(data = richness, Fisher ~ group)
+
+#draw barplot
+
+ggplot(data=richness, aes(x=group, y=Fisher)) +
+  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
+  labs(title= 'Fisher', x= ' ', y= ''
+       # , tag = "A"
+  ) +
+  geom_point(aes(fill=group, col=group))+
+  #  geom_jitter()+
+  ylim (10, 30) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  stat_compare_means(method = "anova", label.y = 29) +  # Add global p-value
+  stat_pvalue_manual(dunn, 
+                     y.position = c(26, 28, 27)) +
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position= "none",
+  )
+
+ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
+
 
 
 
@@ -246,9 +418,6 @@ rel_table <- as(otu_table(ps_phylum_rel), "matrix")
 library(vegan)
 
 #https://github.com/joey711/phyloseq/issues/1046
-
-#relative abundance로 변환
-relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #relative abundance 구하는 것으로 예상
 
 #set.seed(134) ###이거 뭐지
 ##*******일단 bray로 선택. 근데 뭘로 할건지 한번 정하긴 해야함.*****#
