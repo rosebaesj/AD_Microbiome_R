@@ -1,6 +1,10 @@
+#library에 없는게 있으면 보통 install.packages("")로 설치하면 되고 안되는 경우엔 검색하면 바로 나옴
 library(phyloseq)
 library(tidyverse)
 library("FSA")
+library("RColorBrewer")
+library("ggpubr")
+
 
 ########################################################################
 ###########################IMPORT DATA##################################
@@ -11,12 +15,12 @@ library("FSA")
 
 #******* 수기로 #OTU ID -> OTUID로 변경해야함, 또한 taxonomy라고 써져있는 부분 지워야함.*******
 #	read	in	OTU	table	
-otu	<-	read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
+otu	<-	read.table(file	=	"qiime2_files/DADA2_table.txt",	header	=	TRUE)
 head(otu)
 
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
+tax	<-	read.table(file	=	"qiime2_files/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
 head(tax)
 
 #	merge	files	
@@ -39,23 +43,23 @@ library("phyloseq")
 library("ape")
 
 #	read	in	otu	table
-otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
+otu_table	=	read.csv("qiime2_files/otu_matrix.csv",	sep=",",	row.names=1)
 otu_table	=	as.matrix(otu_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
+taxonomy	=	read.csv("qiime2_files/taxonomy.csv",	sep=",",	row.names=1)
 taxonomy	=	as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
-metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
+metadata	=	read.table("qiime2_files/metadata.tsv",	row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
 #	read	in	tree
-phy_tree	=	read_tree("phyloseq/tree.nwk")
+phy_tree	=	read_tree("qiime2_files/tree.nwk")
 
 #	import	as	phyloseq	objects
 OTU	=	otu_table(otu_table,	taxa_are_rows	=	TRUE)
@@ -109,16 +113,38 @@ richness0 <- estimate_richness(physeq)
 #간단하게 전체적으로 살펴보는 방법
 plot_richness(rphyseq, sortby = META$group)
 
+##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
+pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
+
 ##########################################
 ############### Chao1 ##############
 ##########################################
 
 
 #draw barplot
-ggplot(data=richness, aes(x=META$group, y=Chao1)) +
-  geom_boxplot(fill=c("blue","red","green")) +
-  labs(title= 'chao1', x= ' ', y= '', tag = "A") +
-  geom_point()
+ggplot(data=richness, aes(x=META$group, y=Chao1, 
+                          fill=META$group, col=META$group)) +
+  geom_boxplot(alpha = 0.5) +
+  labs(title= 'Chao1', x= ' ', y= ''
+      # , tag = "A"
+       ) +
+  geom_point()+
+#  geom_jitter()+
+  stat_compare_means(method = "anova", label.y = 200) +  # Add global p-value
+  stat_compare_means(comparisons = pair, method = "wilcox.test") +
+  scale_color_brewer(palette = 'Pastel2')+
+  scale_fill_brewer(palette = "Pastel2")+
+  ylim (75, 210) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position= "none",
+  )
 
 #one way anova
 one.way <- aov(Chao1 ~ META$group, data = richness)
@@ -131,6 +157,13 @@ kruskal.test(Chao1 ~ META$group, data = richness)
 
 dunnTest(Chao1 ~ META$group, data = richness,
          method="bonferroni")
+
+
+
+
+
+
+
 
 ##############  Shannon index ##############
 
@@ -145,12 +178,6 @@ one.way <- aov(Shannon ~ META$group, data = richness)
 summary(one.way)
 
 kruskal.test(Shannon ~ META$group, data = richness)
-
-#pairwise.wilcox.test(chao1_data$chao1, chao1_data$Group,
-#                     p.adjust.method = "BH")
-
-#dunnTest(chao1 ~ Group, data = chao1_data,
-#         method="bonferroni")
 
 ############### inverse simpson ##############
 
