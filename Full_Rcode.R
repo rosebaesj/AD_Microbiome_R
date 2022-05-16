@@ -1,11 +1,12 @@
 #library에 없는게 있으면 보통 install.packages("")로 설치하면 되고 안되는 경우엔 검색하면 바로 나옴
-library(phyloseq)
 library(tidyverse)
 library("FSA")
 library("RColorBrewer")
 library("ggpubr")
 library(vegan)
 library("ggplot2")
+library("phyloseq")
+library("ape")
 
 theme_set(
   theme_bw()+
@@ -28,12 +29,12 @@ theme_set(
 
 #******* 수기로 #OTU ID -> OTUID로 변경해야함, 또한 taxonomy라고 써져있는 부분 지워야함.*******
 #	read	in	OTU	table	
-otu	<-	read.table(file	=	"qiime2_files/DADA2_table.txt",	header	=	TRUE)
+otu	<-	read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
 head(otu)
 
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-tax	<-	read.table(file	=	"qiime2_files/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
+tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
 head(tax)
 
 #	merge	files	
@@ -51,28 +52,26 @@ write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col
 
 #	Step	5,	Finally,	upload	all	of	your	files	into	phyloseq	in	R!
 
-library("ggplot2")
-library("phyloseq")
-library("ape")
+
 
 #	read	in	otu	table
-otu_table	=	read.csv("qiime2_files/otu_matrix.csv",	sep=",",	row.names=1)
+otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
 otu_table	=	as.matrix(otu_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-taxonomy	=	read.csv("qiime2_files/taxonomy.csv",	sep=",",	row.names=1)
+taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
 taxonomy	=	as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
-metadata	=	read.table("qiime2_files/metadata.tsv",	row.names=1)
+metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
 #	read	in	tree
-phy_tree	=	read_tree("qiime2_files/tree.nwk")
+phy_tree	=	read_tree("phyloseq/tree.nwk")
 
 #	import	as	phyloseq	objects
 OTU	=	otu_table(otu_table,	taxa_are_rows	=	TRUE)
@@ -90,7 +89,7 @@ sample_names(OTU)
 sample_names(META)
 
 #	merge	into	one	phyloseq	object
-physeq	=	phyloseq(OTU,	TAX,	META,	phy_tree)
+physeq <- phyloseq(OTU, TAX, META, phy_tree)
 physeq
 
 #	Now,	continue	to	analysis	in	phyloseq!
@@ -688,6 +687,9 @@ relaphyseq20 <- prune_taxa(names(most_abundant_taxa), relaphyseq) #얘는 안됨
 
 table_20 <- t(as.matrix(relaphyseq20@otu_table@.Data))
 tax_table_20 <- data.frame(relaphyseq20@tax_table)
+tax_table_20
+
+df_table_20 <- data.frame(table_20)
 
 colnames(table_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
                        'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
@@ -701,7 +703,7 @@ colnames(table_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacil
 library("corrplot")
 
 correlation <- cor(table_20)
-
+cor(df_table_20)
 pheatmap(correlation, 
          color = colorRampPalette(c("skyblue", "white", "pink"))(50),
          border_color = "grey",
@@ -745,41 +747,39 @@ ggsave("Other/correlation.png", width=10, height=10, units="in", device = "png")
 #*****Spearman correlation****#
 ########################################################################
 
-spearman_1 <-data.frame(richness$Shannon)
-spearman_1 <-cbind(spearman_1, table_20[,3])
-t_spearman_1 <- data.frame(t(spearman_1))
-colnames(spearman_1) <- c('Shannon', 's__Lactobacillus_intestinalis')
+#1 
 
-fit <- lm(Shannon ~ s__Lactobacillus_intestinalis, data = spearman_1)
+for (i in 1: 20){
+spearman_1 <-cbind(richness$Shannon, df_table_20[i])
+microbname <- colnames(df_table_20[i])
+colnames(spearman_1) <- c('Shannon', 'microb')
 
+paste(colnames(df_table_20[i]))                         
+                          
+fit <- lm(Shannon ~ microb, data = spearman_1)
+summary(fit)
 #dev.new(width=5, height=5, unit="px")
 
-
-p <- ggplot(spearman_1,aes(s__Lactobacillus_intestinalis,Shannon))+
+ggplot(spearman_1,aes(microb, Shannon))+
   geom_point(col = 'pink')+
   #  stat_summary(fun.data=mean_cl_normal) +
   geom_smooth(method='lm', col = 'pink', fill = 'pink')+
   xlab('Relative Abundance')+
-  labs(title = "s__Lactobacillus_intestinalis", 
-       subtitle  = paste(" R2 = ",signif(summary(fit)$adj.r.squared, 5),
+  labs(title = paste(colnames(df_table_20[i])), 
+       caption = paste(" adj R^2 = ",signif(summary(fit)$adj.r.squared, 5),
                          #                   "\n", "Intercept =",signif(fit$coef[[1]],5 ),
                          #                   "Slope =",signif(fit$coef[[2]], 5), "\n",
-                         ", P =",signif(summary(fit)$coef[2,4], 5)))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
+                         ", P =",signif(summary(fit)$coef[2,4], 5)))
+## adj R는 음수가 나오기도 한다....
+#https://www.researchgate.net/post/Interpretation_of_negative_Adjusted_R_squared_R22
+#이런 경우에는 그냥 0으로 간주한다.
 
-#수기로 correlation_graphs 폴더를 생성
-ggsave(plot = p, width = 3, height = 3, dpi = 300, 
-       filename = "s__Lactobacillus_intestinalis.pdf", 
-       path = 'phyloseq/correlation_graphs')
-
+ggsave(width = 3.5, height = 3.5, dpi = 300, units = "in",
+       filename = paste(colnames(df_table_20[i]),".png"),
+       path = "correlation/",
+       device = "png"
+       )
+}
 ########################################################################
 #*****Spearman correlation****#
 ########################################################################
