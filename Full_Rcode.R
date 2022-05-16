@@ -4,6 +4,19 @@ library(tidyverse)
 library("FSA")
 library("RColorBrewer")
 library("ggpubr")
+library(vegan)
+library("ggplot2")
+
+theme_set(
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+          axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+))
 
 
 ########################################################################
@@ -410,102 +423,135 @@ ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
 
 
 
-########################################################################
-##################### PCoA  - bray method #############################
-########################################################################
 
 
-library(vegan)
+########################################################################
+##################### Beta diversity #############################
+########################################################################
+
 
 #https://github.com/joey711/phyloseq/issues/1046
 
 #set.seed(134) ###이거 뭐지
-##*******일단 bray로 선택. 근데 뭘로 할건지 한번 정하긴 해야함.*****#
+
+
+##################### PCoA  - bray method #############################
 
 #calculating bray curtis distance matrix
-PCoA_bray <- phyloseq::distance(relaphyseq, method = "bray")
+PCoA_bray <- ordinate(relaphyseq, 
+                         method ="PCoA", #defalt 가 DCA라는데
+                         distance = "bray")
 
 #making a data frame from the sample_data
-sampledf <- data.frame(sample_data(rphyseq))
 sampledf2 <- data.frame(sample_data(relaphyseq))
 
 
 #running adonis test
-adonis2(PCoA_bray ~ META$group, data = sampledf) #0.005 
-#sampledf에서 불러오는게 안돼서 그냥 META에서 부름
-adonis2(PCoA_bray ~ META$group, data = sampledf2) #0.007
-anosim(PCoA_bray, grouping = META$group)
+PCoA_bray_d <- phyloseq::distance(relaphyseq, method = "bray")
+adonis2_bray <- adonis2(PCoA_bray_d ~ META$group, data = sampledf2) #0.007
+adonis2(PCoA_bray_d ~ META$group, data = sampledf2)
+anosim_bray <- anosim(PCoA_bray_d, grouping = META$group)
 ##그리기...
+#theme_set(theme_bw())
 
-plot <- plot_ordination(rphyseq, PCoA, color = "group")
+plot_ordination(relaphyseq, PCoA_bray, color = "group")+
+  # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
+  #              alpha=0.3, #색진하기 정도
+  #              geom = "polygon", aes(fill = group))+  
+  stat_conf_ellipse(colour = "transparent", #level=0.3, #level 얼마로 해야하는지 확인.
+                    alpha=0.3, #색진하기 정도
+                    geom = "polygon", aes(fill = group))+ 
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  labs(title = "Bray",
+       caption = paste("PERMANOVA = ", adonis2_bray$`Pr(>F)`[1],
+                           ", ANOSIM = ", anosim_bray$signif))
 
-library("ggplot2")
+ggsave("beta_div/bray.png", width=4, height=3, units="in", device = "png")
 
-plot + 
-  stat_ellipse(level=0.3, alpha=0.2, fill = TRUE) + #level 얼마로 해야하는지 확인.
-  theme_bw()
 
-########################################################################
 ##################### PCoA  - unweighted #############################
-########################################################################
 
-#calculating bray curtis distance matrix
+
+#calculating unifrac curtis distance matrix
+PCoA_unifrac <- ordinate(relaphyseq, 
+                      method ="PCoA", #defalt 가 DCA라는데
+                      distance = "unifrac")
+
+#making a data frame from the sample_data
+sampledf2 <- data.frame(sample_data(relaphyseq))
+
+
+#running adonis test
 PCoA_unifrac_d <- phyloseq::distance(relaphyseq, method = "unifrac")
-PCoA_unifrac <- ordinate(relaphyseq, method ="PCoA", distance = "unifrac")
-
-#making a data frame from the sample_data
-sampledf <- data.frame(sample_data(rphyseq))
-sampledf2 <- data.frame(sample_data(relaphyseq))
-
-
-#running adonis test
-adonis2(PCoA_unifrac_d ~ META$group, data = sampledf) #0.005 
-#sampledf에서 불러오는게 안돼서 그냥 META에서 부름
-adonis2(PCoA_unifrac_d ~ META$group, data = sampledf2) #0.007
-
-anosim(PCoA_unifrac_d, grouping = META$group)
+adonis2_unifrac <- adonis2(PCoA_unifrac_d ~ META$group, data = sampledf2) #0.007
+anosim_unifrac <- anosim(PCoA_unifrac_d, grouping = META$group)
 ##그리기...
+#theme_set(theme_bw())
 
-plot <- plot_ordination(rphyseq, PCoA_unifrac, color = "group")
-plot
+plot_ordination(relaphyseq, PCoA_unifrac, color = "group")+
+  # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
+  #              alpha=0.3, #색진하기 정도
+  #              geom = "polygon", aes(fill = group))+  
+  stat_conf_ellipse(colour = "transparent", #level=0.3, #level 얼마로 해야하는지 확인.
+                    alpha=0.3, #색진하기 정도
+                    geom = "polygon", aes(fill = group))+ 
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  labs(title = "Unweighted Unifrac",
+       caption = paste("PERMANOVA = ", adonis2_unifrac$`Pr(>F)`[1],
+                       ", ANOSIM = ", anosim_unifrac$signif))
 
-library("ggplot2")
+ggsave("beta_div/unifrac.png", width=4, height=3, units="in", device = "png")
 
-plot + 
-  stat_ellipse(level=0.3, alpha=0.2, fill = TRUE) + #level 얼마로 해야하는지 확인.
-  theme_bw()
 
-########################################################################
+
+
 ##################### PCoA  - weighted #############################
-########################################################################
 
-#calculating bray curtis distance matrix
-PCoA_wunifrac_d <- phyloseq::distance(relaphyseq, method = "wunifrac")
-PCoA_wunifrac <- ordinate(relaphyseq, method ="PCoA", distance = "wunifrac")
+#calculating wunifrac curtis distance matrix
+PCoA_wunifrac <- ordinate(relaphyseq, 
+                         method ="PCoA", #defalt 가 DCA라는데
+                         distance = "wunifrac")
 
 #making a data frame from the sample_data
-sampledf <- data.frame(sample_data(rphyseq))
 sampledf2 <- data.frame(sample_data(relaphyseq))
 
 
 #running adonis test
-adonis2(PCoA_wunifrac_d ~ META$group, data = sampledf) #0.005 
-#sampledf에서 불러오는게 안돼서 그냥 META에서 부름
-adonis2(PCoA_wunifrac_d ~ META$group, data = sampledf2) #0.007
-
-anosim(PCoA_wunifrac_d, grouping = META$group)
-
-
+PCoA_wunifrac_d <- phyloseq::distance(relaphyseq, method = "wunifrac")
+adonis2_wunifrac <- adonis2(PCoA_wunifrac_d ~ META$group, data = sampledf2) #0.007
+anosim_wunifrac <- anosim(PCoA_wunifrac_d, grouping = META$group)
 ##그리기...
+#theme_set(theme_bw())
 
-plot <- plot_ordination(rphyseq, PCoA_wunifrac, color = "group")
-plot
+plot_ordination(relaphyseq, PCoA_wunifrac, color = "group")+
+  # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
+  #              alpha=0.3, #색진하기 정도
+  #              geom = "polygon", aes(fill = group))+  
+  stat_conf_ellipse(colour = "transparent", #level=0.3, #level 얼마로 해야하는지 확인.
+                    alpha=0.3, #색진하기 정도
+                    geom = "polygon", aes(fill = group))+ 
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  labs(title = "Weighted Unifrac",
+       caption = paste("PERMANOVA = ", adonis2_wunifrac$`Pr(>F)`[1],
+                       ", ANOSIM = ", anosim_wunifrac$signif))
 
-library("ggplot2")
+ggsave("beta_div/wunifrac.png", width=4, height=3, units="in", device = "png")
 
-plot + 
-  stat_ellipse(level=0.3, alpha=0.2, fill = TRUE) + #level 얼마로 해야하는지 확인.
-  theme_bw()
+
+
+
+
+
+
+
+
+
+
+
+
 
 ########################################################################
 ##################### LEfSe #############################
