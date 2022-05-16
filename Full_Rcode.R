@@ -42,7 +42,7 @@ head(merged_file)
 
 #	note:	number	of	rows	should	equal	your	shortest	Sile	length,	drops	taxonomy	for	OTUs	that	don’t	exist	in	your	OTU	table
 #	output	merged	.txt	Pile
-write.table(merged_file,	file	=	"combined_otu_tax.txt",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
+write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
 
 #	It	seems	tedious	but	you	need	to	open	the	merged	.txt	file	in	excel	and	split into	two	files:	one	for	taxonomy	(containing	only	the	columns	OTUID	and taxonomic	info)	and	the	other	for	the	OTU	matrix	(containing	only	OTUID	and abundances	in	each	sample).	Note:	for	the	taxonomy	file,	you	need	to	use	data —>	text-to-columns	in	Excel	and	separate	on	semicolon	to	get	columns	for kingdom,	phylum,	class,	etc…	once	you	make	these	two	separate	files	in	excel, save	each	as	a	.csv
 #******* OTUID, taxonomic	info -> taxonomy.csv 로 저장, taxonomy ;->,로 ㅎ변경하여 column으로 만들기*******
@@ -560,43 +560,72 @@ library("mia")
 library("lefser")
 library("tidyverse")
 library("SummarizedExperiment")
+library("microbiomeMarker")
 
-relasum <- makeTreeSummarizedExperimentFromPhyloseq(relaphyseq)
-unique(relasum$SampleType)
-
-SummarizedExperiment(relaphyseq)
-lefser(relasum, groupCol = "group")
+# relasum <- makeTreeSummarizedExperimentFromPhyloseq(relaphyseq)
+# unique(relasum$SampleType)
+# 
+# SummarizedExperiment(relaphyseq)
+# lefser(relasum, groupCol = "group")
 #*****lefse에서 2개 군만 선별해서 돌리ㄹ는 법을 찾아야함-> 해결 못했음****###
 #*****lefse와 maaslin에서도 동일 data set으로 돌아가려면 rarefaction을 R로 넘어오기 전에 해야할듯??****###
 #Summarized Experiment로 아예 그룹을 빼고 physeq를 만들어봐야할 긋?
 
-library("microbiomeMarker")
+
 lefse <- run_lefse(relaphyseq,"group")
 
 lefse_data <-data.frame(marker_table(lefse))
-plot_ef_bar(lefse)
+plot_ef_bar(lefse)+
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5))
 
+
+ggsave("Other/LEfSe.png", width=10, height=10, units="in", device = "png")
+
+
+########################################################################
+#####################  Cladogram #############################
+########################################################################
 
 ##*****cladogram 오류 햐결 안됨...****##
-library(ggtree)
-####https://yulab-smu.top/treedata-book/chapter4.html
+# library(ggtree)
+# ####https://yulab-smu.top/treedata-book/chapter4.html
+# 
+# fan.angle ()
+# ggtree(relaphyseq, layout = 'circular', 
+#        branch.length = 3, ladderize) #우리가 원하는게 circular 인건 맞는 듯
+# 
+# 
+# data(lefse)
+# lefse_small <- phyloseq::subset_taxa(
+#   lefse,
+#   Phylum %in% c("Firmicutes")
+# )
+# plot_cladogram(lefse, color = c(AD ="red", AP = "blue", CON = "green"), only_marker = TRUE,  clade_label_level = 4)
+# 
+# 
+# plot_cladogram(mm_lefse, color = c(Healthy = "darkgreen", Tumor = "red")) +
+#   theme(plot.margin = margin(0, 0, 0, 0))
 
-fan.angle ()
-ggtree(relaphyseq, layout = 'circular', 
-       branch.length = 3, ladderize) #우리가 원하는게 circular 인건 맞는 듯
+rela_otu <- data.frame(relaphyseq@otu_table@.Data)
+rela_otu$OTUID <- rownames(rela_otu)
+m_rela_table <- merge(rela_otu, tax, by="OTUID")
+m_rela_table <- m_rela_table[-1]
+m_rela_table <- m_rela_table[-18]
 
-
-data(lefse)
-lefse_small <- phyloseq::subset_taxa(
-  lefse,
-  Phylum %in% c("Firmicutes")
-)
-plot_cladogram(lefse, color = c(AD ="red", AP = "blue", CON = "green"), only_marker = TRUE,  clade_label_level = 4)
-
-
-plot_cladogram(mm_lefse, color = c(Healthy = "darkgreen", Tumor = "red")) +
-  theme(plot.margin = margin(0, 0, 0, 0))
-
+write.table(m_rela_table,	file	=	"phyloseq/m_rela_table.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
+# 여기서 부터는 수기로 편집.
+#           Taxonomy 열 -> ; 로 부분되어 있는 것 |로 구분 
+# Group 행
+# Sample 행
 
 ########################################################################
 #####################  Heatmap + taxonomy #############################
@@ -618,13 +647,6 @@ plot_heatmap(
 
 plot_ef_dot(lefse)
 
-#****논문에서 쓴것은 pheatmap package***#
-library("pheatmap")
-relaphyseq@otu_table@.Data
-pheatmap(df_num_scale, main = "pheatmap default")
-
-b <- run_test_two_groups(relaphyseq, 'group')
-
 ########################################################################
 #####################  MAASLIN #############################
 ########################################################################
@@ -632,22 +654,24 @@ b <- run_test_two_groups(relaphyseq, 'group')
 #
 #library("devtools") #github에서 다운받으려면 필요한 것 
 #LEfSe identifies those data features that are distinct between a pair of metadatums (e.g. differences between two sampling sites, two clinical outcomes, two biochemical markers, two modalities, etc.).  MaAsLin extends the functionality of LEfSe to identify associations between data features and multiple metadata factors, which can be discrete and/or continuous and can include time series data
-library("yingtools2")
-library("tidyverse")
-library("Maaslin2")
-
-#https://github.com/biobakery/maaslin#markdown-header-input-files
-#*****위의 형식을 보고 input file 만들기****
-
-maaslin <- Maaslin2(input_data = 'MaAsLin/feature_table_L7.txt',# sample과 feature만 있는 것, 이미 rarefaction 되었음
-                    input_metadata = 'MaAsLin/metadata.txt', #group 정보 등
-                    analysis_method = 'LM', #기본 값이 LM인데 다른 방법들의 차이를 확인할수가 없음
-                    output = 'MaAsLin/maaslin', #output folder 이름
-                    reference = c('Group;AD;AP;CON')) #다변수인 경우 나열할 것.
-
-
-
-
+# library("yingtools2")
+# library("tidyverse")
+# library("Maaslin2")
+# 
+# #https://github.com/biobakery/maaslin#markdown-header-input-files
+# #*****위의 형식을 보고 input file 만들기****
+# 
+# maaslin <- Maaslin2(input_data = 'MaAsLin/feature_table_L7.txt',# sample과 feature만 있는 것, 이미 rarefaction 되었음
+#                     input_metadata = 'MaAsLin/metadata.txt', #group 정보 등
+#                     analysis_method = 'LM', #기본 값이 LM인데 다른 방법들의 차이를 확인할수가 없음
+#                     output = 'MaAsLin/maaslin', #output folder 이름
+#                     reference = c('Group;AD;AP;CON')) #다변수인 경우 나열할 것.
+# 
+# 
+# 
+# 
+# 
+# 
 
 ########################################################################
 #####################  correlation  #############################
@@ -655,6 +679,7 @@ maaslin <- Maaslin2(input_data = 'MaAsLin/feature_table_L7.txt',# sample과 feat
 
 #****가장 많은 종 20개 찾기******
 topN <- 20
+sort(taxa_sums(relaphyseq), TRUE)
 most_abundant_taxa <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
 print(most_abundant_taxa)
 #physeq20 <- prune_taxa(names(most_abundant_taxa), physeq)
@@ -662,21 +687,59 @@ relaphyseq20 <- prune_taxa(names(most_abundant_taxa), relaphyseq) #얘는 안됨
 #뭔가 이 prune 명령어가 subgroup 가능하게 하는 것 같음
 
 table_20 <- t(as.matrix(relaphyseq20@otu_table@.Data))
+tax_table_20 <- data.frame(relaphyseq20@tax_table)
+
 colnames(table_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
                        'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
-                       'g__Bacteroides_1', 'g__Bacteroides_2', 'Unid_g__Muribaculaceae', 'g__Muribaculaceae', 
+                       'g__Bacteroides_1', 'g__Bacteroides_2', 'g__Muribaculaceae_s_Unid', 'g__Muribaculaceae', 
                        's__uncultured_bacterium_1', 's__uncultured_Bacteroidales_1', 's__uncultured_Bacteroidales_2', 's__uncultured_Bacteroidales_3', 
-                       's__uncultured_bacterium_2', 's__uncultured_bacterium_3', 'g__Helicobacter', 's__uncultured_Clostridiales')
+                       's__uncultured_bacterium_2', 'g__Helicobacter', 'f__Lachnospiraceae', 's__uncultured_Clostridiales')
 
 #tax <- physeq20@tax_table@.Data
 
 #***correlation matrix****
+library("corrplot")
 
 correlation <- cor(table_20)
-pheatmap(correlation, scale = "none", 
-         drop_levels = TRUE, #아무 영향 없음
-         angle_col = "90",
+
+pheatmap(correlation, 
+         color = colorRampPalette(c("skyblue", "white", "pink"))(50),
+         border_color = "grey",
+                   scale = "none", 
+                   drop_levels = TRUE, #아무 영향 없음
+                   angle_col = "90",
+                   show_colnames = F
 )
+# 
+# 
+# save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+#     stopifnot(!missing(x))
+#     stopifnot(!missing(filename))
+#     pdf(filename, width=width, height=height)
+#     grid::grid.newpage()
+#     grid::grid.draw(x$gtable)
+#     dev.off()
+#   }
+#   save_pheatmap_pdf(xx, "test.pdf")
+#   
+#   
+#   
+# ggsave("Other/correlations.png", width=10, height=7, units="in", device = "png")
+
+
+#이건 다른 ㅇ히트맵.. rela, correlation 아님
+phyloseq::plot_heatmap(relaphyseq20)
+#***얘는 다른 heatmap에서 활용할 수 있을 듯 ***
+
+#*** 얘는 삼각형이 가능한 heatmap***
+corrplot(correlation,
+         method = 'shade',
+         type = 'lower'
+         )
+
+ggsave("Other/correlation.png", width=10, height=10, units="in", device = "png")
+
+  
 
 ########################################################################
 #*****Spearman correlation****#
@@ -689,7 +752,7 @@ colnames(spearman_1) <- c('Shannon', 's__Lactobacillus_intestinalis')
 
 fit <- lm(Shannon ~ s__Lactobacillus_intestinalis, data = spearman_1)
 
-dev.new(width=5, height=5, unit="px")
+#dev.new(width=5, height=5, unit="px")
 
 
 p <- ggplot(spearman_1,aes(s__Lactobacillus_intestinalis,Shannon))+
@@ -711,6 +774,7 @@ p <- ggplot(spearman_1,aes(s__Lactobacillus_intestinalis,Shannon))+
         plot.title = element_text(hjust = 0.5, face="bold"),
         plot.subtitle = element_text(hjust = 0.5)
   )
+
 #수기로 correlation_graphs 폴더를 생성
 ggsave(plot = p, width = 3, height = 3, dpi = 300, 
        filename = "s__Lactobacillus_intestinalis.pdf", 
