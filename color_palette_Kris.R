@@ -8,3 +8,10 @@ pal_20 <- ("#8E14F3", "#4B66FF", "#3CF3FF", "#1FEC22", "#A1FE13", "#FBC417", "#E
 ####Hex color code site
 ####https://www.color-hex.com/
 ####https://htmlcolorcodes.com/
+
+
+
+
+library(RColorBrewer)
+display.brewer.all()
+####위의 명령어 두개를 입력하면 R에서 기본적으로 지원하는 컬러파레트를 볼 수 있음.
