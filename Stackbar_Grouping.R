@@ -197,3 +197,60 @@ plot_bar(grelaphyseq, fill = "Class") +
         plot.title = element_text(hjust = 0.5, face="bold"),
         plot.subtitle = element_text(hjust = 0.5)
   )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########Metadata를 이용해서 rarefaction된 정보들 sum하기.
+
+otu	<-	read.table(file	=	"0302_table.txt",	header	=	TRUE)
+tax	<-	read.table(file	=	"taxonomy.txt",	sep	=	'\t',	header	=	TRUE)
+merged_file	<-	merge(otu,	tax,	by.x	=	c("OTUID"),	by.y=c("OTUID"))
+write.table(merged_file,	file	=	"combined_otu_tax.txt",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
+
+
+otu_table	=	read.csv("otu_matrix.csv",	sep=",",	row.names=1)
+otu_table	=	as.matrix(otu_table)
+
+
+taxonomy	=	read.csv("taxonomy.csv",	sep=",",	row.names=1)
+taxonomy	=	as.matrix(taxonomy)
+
+
+metadata	=	read.table("metadata.tsv",	row.names=1)
+colnames(metadata)<-metadata[1,]
+metadata <- metadata[-1,]
+
+
+phy_tree	=	read_tree("tree.nwk")
+
+Metadata<-
+  etadata %>% 
+  left_join(gotu)
+
+
+OTU	=	otu_table(otu_table,	taxa_are_rows	=	TRUE)
+TAX	=	tax_table(taxonomy)
+META	=	sample_data(metadata)
+
+
+relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)})
+
+
+
+
+
+
+

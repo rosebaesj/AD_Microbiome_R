@@ -24,6 +24,11 @@ theme_set(
         plot.subtitle = element_text(hjust = 0.5)
 ))
 
+<<<<<<< Updated upstream
+=======
+
+#############Testing Line###################
+>>>>>>> Stashed changes
 
 ########################################################################
 ###########################IMPORT DATA##################################
@@ -34,12 +39,12 @@ theme_set(
 
 #******* 수기로 #OTU ID -> OTUID로 변경해야함, 또한 taxonomy라고 써져있는 부분 지워야함.*******
 #	read	in	OTU	table	
-otu	<-	read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
+otu	<-	read.table(file	=	"DADA2_table.txt",	header	=	TRUE)
 head(otu)
 
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
+tax	<-	read.table(file	=	"taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
 head(tax)
 
 #	merge	files	
@@ -59,23 +64,23 @@ write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col
 
 
 #	read	in	otu	table
-otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
+otu_table	=	read.csv("otu_matrix.csv",	sep=",",	row.names=1)
 otu_table	=	as.matrix(otu_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
+taxonomy	=	read.csv("taxonomy.csv",	sep=",",	row.names=1)
 taxonomy	=	as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
-metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
+metadata	=	read.table("metadata.tsv",	row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
 #	read	in	tree
-phy_tree	=	read_tree("phyloseq/tree.nwk")
+phy_tree	=	read_tree("tree.nwk")
 
 #	import	as	phyloseq	objects
 OTU	=	otu_table(otu_table,	taxa_are_rows	=	TRUE)
@@ -784,6 +789,7 @@ ggplot(spearman_1,aes(microb, Shannon))+
        caption = paste(" adj R^2 = ",signif(summary(fit)$adj.r.squared, 5),
                          #                   "\n", "Intercept =",signif(fit$coef[[1]],5 ),
                          #                   "Slope =",signif(fit$coef[[2]], 5), "\n",
+<<<<<<< Updated upstream
                          ", P =",signif(summary(fit)$coef[2,4], 5)))
 ## adj R는 음수가 나오기도 한다....
 #https://www.researchgate.net/post/Interpretation_of_negative_Adjusted_R_squared_R22
@@ -795,6 +801,22 @@ ggsave(width = 3.5, height = 3.5, dpi = 300, units = "in",
        device = "png"
        )
 }
+=======
+                         ", P =",signif(summary(fit)$coef[2,4], 5)))+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+#수기로 correlation_graphs 폴더를 생성
+ggsave(plot = p, width = 3, height = 3, dpi = 300, 
+       filename = "s__Lactobacillus_intestinalis.pdf", 
+       path = 'correlation_graphs')
+>>>>>>> Stashed changes
 
 
 
