@@ -7,6 +7,7 @@ library(vegan)
 library("ggplot2")
 library("phyloseq")
 library("ape")
+library(rstatix)
 
 theme_set(
   theme_bw()+
@@ -279,7 +280,7 @@ ggplot(data=richness, aes(x=group, y=Chao1)) +
 #  geom_jitter()+
   ylim (75, 220) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
   stat_compare_means(method = "anova", label.y = 210) +  # Add global p-value
-  stat_pvalue_manual(dunn, 
+  stat_pvalue_manual(dunn_Chao1, #이게....
                      y.position = c(180, 200, 190)) +
   scale_color_brewer(palette = 'Pastel1')+
   scale_fill_brewer(palette = "Pastel1")+
@@ -328,7 +329,7 @@ ggplot(data=richness, aes(x=group, y=Shannon)) +
   #  geom_jitter()+
   ylim (1.5, 4.5) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
   stat_compare_means(method = "anova", label.y = 4.4) +  # Add global p-value
-  stat_pvalue_manual(dunn, 
+  stat_pvalue_manual(dunn_Shannon, 
                      y.position = c(3.8, 4.2, 4.0)) +
   scale_color_brewer(palette = 'Pastel1')+
   scale_fill_brewer(palette = "Pastel1")+
@@ -365,7 +366,7 @@ ggplot(data=richness, aes(x=group, y=InvSimpson)) +
   #  geom_jitter()+
   ylim (1.5, 25) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
   stat_compare_means(method = "anova", label.y = 24) +  # Add global p-value
-  stat_pvalue_manual(dunn, 
+  stat_pvalue_manual(dunn_InvSimpson, 
                      y.position = c(18, 22, 20)) +
   scale_color_brewer(palette = 'Pastel1')+
   scale_fill_brewer(palette = "Pastel1")+
@@ -402,7 +403,7 @@ ggplot(data=richness, aes(x=group, y=Fisher)) +
   #  geom_jitter()+
   ylim (10, 30) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
   stat_compare_means(method = "anova", label.y = 29) +  # Add global p-value
-  stat_pvalue_manual(dunn, 
+  stat_pvalue_manual(dunn_Fisher, 
                      y.position = c(26, 28, 27)) +
   scale_color_brewer(palette = 'Pastel1')+
   scale_fill_brewer(palette = "Pastel1")+
