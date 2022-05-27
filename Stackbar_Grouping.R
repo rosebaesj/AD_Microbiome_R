@@ -8,6 +8,8 @@ library(ape)
 
 
 
+getwd()
+setwd("C:/Users/USER/Documents/RStudio/SILVA")
 
 
 ########################################################################
@@ -19,15 +21,12 @@ library(ape)
 #	read	in	OTU	table	
 otu	<-	read.table(file	=	"DADA2_table.txt",	header	=	TRUE)
 
-
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 tax	<-	read.table(file	=	"taxonomy.txt",	sep	=	'\t',	header	=	TRUE)
 
-
 #	merge	files	
 merged_file	<-	merge(otu,	tax,	by.x	=	c("OTUID"),	by.y=c("OTUID"))
-
 
 #	note:	number	of	rows	should	equal	your	shortest	Sile	length,	drops	taxonomy	for	OTUs	that	don’t	exist	in	your	OTU	table
 #	output	merged	.txt	Pile
@@ -44,20 +43,17 @@ write.table(merged_file,	file	=	"combined_otu_tax.txt",	sep	=	'\t',	col.names	= 
 otu_table	=	read.csv("otu_matrix.csv",	sep=",",	row.names=1)
 otu_table	=	as.matrix(otu_table)
 
-
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 taxonomy	=	read.csv("taxonomy.csv",	sep=",",	row.names=1)
 taxonomy	=	as.matrix(taxonomy)
 
-
 #	read	in	metadata	
 #	variables	=	???
 metadata	=	read.table("metadata.tsv",	row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
-
 
 #	read	in	tree
 phy_tree	=	read_tree("tree.nwk")
@@ -68,10 +64,9 @@ TAX	=	tax_table(taxonomy)
 META	=	sample_data(metadata)
 #	(tree	was	already	imported	as	a	phyloseq	object)
 
-
 #	merge	into	one	phyloseq	object
 physeq	=	phyloseq(OTU,	TAX,	META,	phy_tree)
-
+physeq
 
 #	Now,	continue	to	analysis	in	phyloseq!
 
@@ -92,6 +87,8 @@ physeq	=	phyloseq(OTU,	TAX,	META,	phy_tree)
 rphyseq <- rarefy_even_depth(physeq) #기본값이 최솟값으로 맞추는 것
 rphyseq2 <- rarefy_even_depth(physeq, sample.size = 13410) #기본값이 최솟값으로 맞추는 것
 
+
+grphyseq <- rarefy_even_depth(gphyseq)
 
 
 relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)})
@@ -125,9 +122,9 @@ plot_bar(relaphyseq, fill = "Phylum") +
 
 
 ###All samples color palette
-plot_bar(gphyseq, fill = "Phylum") +
+plot_bar(relaphyseq, fill = "Phylum") +
   geom_bar(aes(fill = Phylum), stat = "identity", position = "stack") +
-  scale_fill_brewer(palette = "Set3") +
+  scale_fill_brewer(palette = "Set1") +
   labs(x = "", y="Relative abundance") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
@@ -149,41 +146,10 @@ plot_bar(gphyseq, fill = "Phylum") +
 
 
 
-
-##Group별 stacked bar plot
-
-
-###기본 셋팅은 앞의 것과 같음. 다만 아직은 직접 손 보는 형태. 분명... 뭔가 있을텐데.
-gotu <- read.table(file = "0302_table.txt", header = TRUE)
-gtax	<-	read.table(file	=	"gtaxonomy.txt",	sep	=	'\t',	header	=	TRUE)
-gmerged_file	<-	merge(gotu,	gtax,	by.x	=	c("OTUID"),	by.y=c("OTUID"))
-write.table(merged_file,	file	=	"combined_gotu_tax.txt",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
-
-gotu_table = read.csv("gotu_matrix_group.csv", sep=",", row.names=1)
-gotu_table	=	as.matrix(gotu_table)
-
-gtaxonomy	=	read.csv("gtaxonomy.csv",	sep=",",	row.names=1)
-gtaxonomy	=	as.matrix(gtaxonomy)
-
-gmetadata	=	read.table("gmetadata.tsv",	row.names=1)
-colnames(gmetadata)<-gmetadata[1,]
-gmetadata <- gmetadata[-1,]
-
-phy_tree	=	read_tree("tree.nwk")
-
-GOTU	=	otu_table(gotu_table,	taxa_are_rows	=	TRUE)
-GTAX	=	tax_table(gtaxonomy)
-GMETA	=	sample_data(gmetadata)
-
-gphyseq = phyloseq(GOTU, GTAX, GMETA, phy_tree)
-
-grelaphyseq <- transform_sample_counts(gphyseq, function(otu) {otu/sum(otu)})
-
-
-
-plot_bar(grelaphyseq, fill = "Class") +
-  geom_bar(aes(fill = Class), stat = "identity", position = "stack") +
-  scale_fill_brewer(palette = "Set3") +
+###Group samples **이것저것 시도해보는 중**
+plot_bar(relaphyseq, fill = "Phylum") +
+  geom_bar(aes(fill = Phylum), stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("#8E14F3", "#4B66FF", "#3CF3FF", "#1FEC22", "#A1FE13", "#FBC417", "#EC6F1E", "#F03309", "#FE6666", "#FA217A", "#FC7CF0")) +
   labs(x = "", y="Relative abundance") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
