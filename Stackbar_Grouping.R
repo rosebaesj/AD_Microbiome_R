@@ -125,6 +125,7 @@ plot_bar(relaphyseq, fill = "Phylum") +
 plot_bar(relaphyseq, fill = "Phylum") +
   geom_bar(aes(fill = Phylum), stat = "identity", position = "stack") +
   scale_fill_brewer(palette = "Set1") +
+<<<<<<< HEAD
   labs(x = "", y="Relative abundance") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
@@ -150,6 +151,8 @@ plot_bar(relaphyseq, fill = "Phylum") +
 plot_bar(relaphyseq, fill = "Phylum") +
   geom_bar(aes(fill = Phylum), stat = "identity", position = "stack") +
   scale_fill_manual(values = c("#8E14F3", "#4B66FF", "#3CF3FF", "#1FEC22", "#A1FE13", "#FBC417", "#EC6F1E", "#F03309", "#FE6666", "#FA217A", "#FC7CF0")) +
+=======
+>>>>>>> parent of 488595c (PPackDeagal)
   labs(x = "", y="Relative abundance") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
@@ -171,6 +174,7 @@ plot_bar(relaphyseq, fill = "Phylum") +
 
 
 
+<<<<<<< HEAD
 
 
 
@@ -220,3 +224,22 @@ relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)})
 
 
 
+=======
+###Group samples **이것저것 시도해보는 중**
+plot_bar(relaphyseq, fill = "Phylum") +
+  geom_bar(aes(fill = Phylum), stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("#8E14F3", "#4B66FF", "#3CF3FF", "#1FEC22", "#A1FE13", "#FBC417", "#EC6F1E", "#F03309", "#FE6666", "#FA217A", "#FC7CF0")) +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+>>>>>>> parent of 488595c (PPackDeagal)
