@@ -1,16 +1,16 @@
 #library에 없는게 있으면 보통 install.packages("")로 설치하면 되고 안되는 경우엔 검색하면 바로 나옴
-library("ggplot2")
-library("phyloseq")
-library("ape")
+library(ggplot2)
+library(phyloseq)
+library(ape)
 library(phyloseq)
 library(tidyverse)
-library("FSA")
-library("RColorBrewer")
-library("ggpubr")
+library(FSA)
+library(RColorBrewer)
+library(ggpubr)
 library(vegan)
-library("ggplot2")
-library("phyloseq")
-library("ape")
+library(ggplot2)
+library(phyloseq)
+library(ape)
 library(rstatix)
 
 theme_set(
@@ -34,12 +34,14 @@ theme_set(
 
 #******* 수기로 #OTU ID -> OTUID로 변경해야함, 또한 taxonomy라고 써져있는 부분 지워야함.*******
 #	read	in	OTU	table	
-otu	<-	read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
+##otu	<-	read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
+otu	<-	read.table(file	=	"All_AD/otu_table.txt",	header	=	TRUE)
 head(otu)
 
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
+##tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
+tax	<-	read.table(file	=	"All_AD/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
 head(tax)
 
 #	merge	files	
@@ -48,7 +50,8 @@ head(merged_file)
 
 #	note:	number	of	rows	should	equal	your	shortest	Sile	length,	drops	taxonomy	for	OTUs	that	don’t	exist	in	your	OTU	table
 #	output	merged	.txt	Pile
-write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
+##write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
+write.table(merged_file,	file	=	"All_AD/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
 
 #	It	seems	tedious	but	you	need	to	open	the	merged	.txt	file	in	excel	and	split into	two	files:	one	for	taxonomy	(containing	only	the	columns	OTUID	and taxonomic	info)	and	the	other	for	the	OTU	matrix	(containing	only	OTUID	and abundances	in	each	sample).	Note:	for	the	taxonomy	file,	you	need	to	use	data —>	text-to-columns	in	Excel	and	separate	on	semicolon	to	get	columns	for kingdom,	phylum,	class,	etc…	once	you	make	these	two	separate	files	in	excel, save	each	as	a	.csv
 #******* OTUID, taxonomic	info -> taxonomy.csv 로 저장, taxonomy ;->,로 ㅎ변경하여 column으로 만들기*******
@@ -59,23 +62,27 @@ write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col
 
 
 #	read	in	otu	table
-otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
+##otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
+otu_table	=	read.csv("All_AD/otu_matrix.csv",	sep=",",	row.names=1)
 otu_table	=	as.matrix(otu_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
-taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
+##taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
+taxonomy	=	read.csv("All_AD/taxonomy.csv",	sep=",",	row.names=1)
 taxonomy	=	as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
-metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
+##metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
+metadata	=	read.table("All_AD/metadata.tsv",	row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
 #	read	in	tree
-phy_tree	=	read_tree("phyloseq/tree.nwk")
+##phy_tree	=	read_tree("phyloseq/tree.nwk")
+phy_tree	=	read_tree("All_AD/tree.nwk")
 
 #	import	as	phyloseq	objects
 OTU	=	otu_table(otu_table,	taxa_are_rows	=	TRUE)
@@ -114,8 +121,8 @@ physeq
 #rarefy란 같은 수의 read로 맞추는 것 
 #기존의 qiime에서 가장 작은 수의 sample이 rarefaction(?) graph에서 평평하게 유지ㅎ되는지 확인해야함
 #*******우리 샘플의 경우 13410개가 최소였음*******
-rphyseq <- rarefy_even_depth(physeq) #기본값이 최솟값으로 맞추는 것
-rphyseq2 <- rarefy_even_depth(physeq, sample.size = 13410) #기본값이 최솟값으로 맞추는 것
+##rphyseq <- rarefy_even_depth(physeq) #기본값이 최솟값으로 맞추는 것
+##rphyseq2 <- rarefy_even_depth(physeq, sample.size = 13410) #기본값이 최솟값으로 맞추는 것
 
 
 
@@ -124,8 +131,8 @@ rphyseq2 <- rarefy_even_depth(physeq, sample.size = 13410) #기본값이 최솟�
 ########################################################################
 
 #relative abundance로 변환
-relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #relative abundance 구하는 것으로 예상
-
+##relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #relative abundance 구하는 것으로 예상
+relaphyseq <- transform_sample_counts(physeq, function(otu) {otu/sum(otu)})
 
 
 ########################################################################
@@ -133,23 +140,23 @@ relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #re
 ########################################################################
 
 #***group 합ㄱ치는게 안됨 ***#
-plot_bar(relaphyseq, fill = "Phylum") +
-  geom_bar(aes(color = Phylum, fill = Phylum), stat = "identity", position = "stack") +
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot by Treatment") +
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
+##plot_bar(relaphyseq, fill = "Phylum") +
+##  geom_bar(aes(color = Phylum, fill = Phylum), stat = "identity", position = "stack") +
+##  labs(x = "", y="Relative abundance") +
+##  ggtitle("Relative abundance stack bar plot by Treatment") +
+##  scale_color_brewer(palette = 'Pastel1')+
+##  scale_fill_brewer(palette = "Pastel1")+
+##  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+##  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+##  theme_bw()+
+##  theme(axis.line = element_line(size=1),
+##        axis.ticks = element_line(size=1),
+##        panel.border = element_blank(),
+##        panel.grid.major = element_blank(),
+##        panel.grid.minor = element_blank(),
+##        plot.title = element_text(hjust = 0.5, face="bold"),
+##        plot.subtitle = element_text(hjust = 0.5)
+##  )
 
 
 plot_bar(relaphyseq, fill = "Class") +
@@ -158,8 +165,8 @@ plot_bar(relaphyseq, fill = "Class") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
   theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
+  scale_color_brewer(palette = 'Set3')+
+  scale_fill_brewer(palette = "Set3")+
   theme_bw()+
   theme(axis.line = element_line(size=1),
         axis.ticks = element_line(size=1),
@@ -176,8 +183,8 @@ plot_bar(relaphyseq, fill = "Order") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
   theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  #scale_color_brewer(palette = 'Pastel1')+
-  #scale_fill_brewer(palette = "Pastel1")+
+  #scale_color_brewer(palette = 'Set3')+
+  #scale_fill_brewer(palette = "Set3")+
   theme_bw()+
   theme(axis.line = element_line(size=1),
         axis.ticks = element_line(size=1),
@@ -194,8 +201,8 @@ plot_bar(relaphyseq, fill = "Family") +
   ggtitle("Relative abundance stack bar plot by Treatment") +
   theme(axis.title = element_text(color="black", face="bold", size=10)) +
   theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  #scale_color_brewer(palette = 'Pastel1')+
-  #scale_fill_brewer(palette = "Pastel1")+
+  #scale_color_brewer(palette = 'Set3')+
+  #scale_fill_brewer(palette = "Set3")+
   theme_bw()+
   theme(axis.line = element_line(size=1),
         axis.ticks = element_line(size=1),
@@ -207,22 +214,22 @@ plot_bar(relaphyseq, fill = "Family") +
   )
 
 #****stacked bar graph of relative abundance PER GROUP ***#
-plot_bar(relaphyseq, fill = "Class") +
-  geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack", 
-           group = META$group) +
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot by Treatment") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
+##plot_bar(relaphyseq, fill = "Class") +
+##  geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack", 
+##           group = META$group) +
+##  labs(x = "", y="Relative abundance") +
+##  ggtitle("Relative abundance stack bar plot by Treatment") +
+##  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+##  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+##  theme_bw()+
+##  theme(axis.line = element_line(size=1),
+##        axis.ticks = element_line(size=1),
+##        panel.border = element_blank(),
+##        panel.grid.major = element_blank(),
+##        panel.grid.minor = element_blank(),
+##        plot.title = element_text(hjust = 0.5, face="bold"),
+##        plot.subtitle = element_text(hjust = 0.5)
+##  )
 
 
 
@@ -251,14 +258,15 @@ plot_bar(relaphyseq, fill = "Class") +
 ##################### alpha diversity #############################
 ########################################################################
 
-richness <- estimate_richness(rphyseq)
-richness2 <- estimate_richness(rphyseq2)
-richness0 <- estimate_richness(physeq)
+##richness1 <- estimate_richness(rphyseq)
+##richness2 <- estimate_richness(rphyseq2)
+richness <- estimate_richness(physeq)
 
 richness$group <- metadata$group
 
 #간단하게 전체적으로 살펴보는 방법
-plot_richness(rphyseq, sortby = META$group)
+##plot_richness(rphyseq, sortby = META$group)
+plot_richness(physeq, sortby = META$group)
 
 ##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
 pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
@@ -566,12 +574,12 @@ ggsave("beta_div/wunifrac.png", width=4, height=3, units="in", device = "png")
 ########################################################################
 ##################### LEfSe #############################
 ########################################################################
-library("mia")
-library("lefser")
-library("tidyverse")
-library("SummarizedExperiment")
+library(mia)
+library(lefser)
+library(tidyverse)
+library(SummarizedExperiment)
 
-library("microbiomeMarker")
+library(microbiomeMarker)
 
 # relasum <- makeTreeSummarizedExperimentFromPhyloseq(relaphyseq)
 # unique(relasum$SampleType)
@@ -705,12 +713,22 @@ tax_table_20 <- data.frame(relaphyseq20@tax_table)
 tax_table_20
 
 df_table_20 <- data.frame(table_20)
+colnames(table_20)
 
-colnames(table_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
-                       'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
-                       'g__Bacteroides_1', 'g__Bacteroides_2', 'g__Muribaculaceae_s_Unid', 'g__Muribaculaceae', 
-                       's__uncultured_bacterium_1', 's__uncultured_Bacteroidales_1', 's__uncultured_Bacteroidales_2', 's__uncultured_Bacteroidales_3', 
-                       's__uncultured_bacterium_2', 'g__Helicobacter', 'f__Lachnospiraceae', 's__uncultured_Clostridiales')
+## colnames(table_20)에서 나온 값들 찾아서 이름 넣기
+
+## colnames(table_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
+##                       'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
+##                       'g__Bacteroides_1', 'g__Bacteroides_2', 'g__Muribaculaceae_s_Unid', 'g__Muribaculaceae', 
+##                       's__uncultured_bacterium_1', 's__uncultured_Bacteroidales_1', 's__uncultured_Bacteroidales_2', 's__uncultured_Bacteroidales_3', 
+##                       's__uncultured_bacterium_2', 'g__Helicobacter', 'f__Lachnospiraceae', 's__uncultured_Clostridiales')
+
+colnames(table_20) <-c('g__Lactobacillus', 's__Lactobacillus_intestinalis', 'g__Helicobacter', 's__uncultured_Bacteroidales', 
+                       's__uncultured_Bacteroidales', 's__uncultured_Bacteroidales', 's__uncultured_bacterium', 's__uncultured_bacterium', 
+                       'g__Muribaculaceae', 's__unidentified', 'g__Bacteroides', 'g__Bacteroides', 
+                       's__uncultured_bacterium', 's__uncultured_bacterium', 'g__Lactobacillus', 'g__Lactobacillus', 
+                       'c__Bacilli', 'c__Bacilli', 'c__Bacilli', 's__uncultured_Clostridiales')
+
 
 #tax <- physeq20@tax_table@.Data
 
