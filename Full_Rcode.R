@@ -8,6 +8,9 @@ library(RColorBrewer)
 library(ggpubr)
 library(vegan)
 library(rstatix)
+library(dplyr)
+library(metagMisc)
+library(MicrobeR)
 
 theme_set(
   theme_bw()+
@@ -64,30 +67,40 @@ write.table(merged_file,file="combined_otu_tax.tsv",sep='\t',col.names=TRUE,row.
 #	read	in	otu	table
 ##otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
 otu_table=read.csv("otu_matrix.csv",sep=",",row.names=1)
-otu_table	=	as.matrix(otu_table)
+otu_table=as.matrix(otu_table)
+##수기로 만들어야 함
+otu_g_table=read.csv("otu_g_matrix.csv",sep=",",row.names=1)
+otu_g_table = as.matrix(otu_g_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 ##taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
 taxonomy=read.csv("taxonomy.csv",sep=",",row.names=1)
-taxonomy	=	as.matrix(taxonomy)
+taxonomy=as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
 ##metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
-metadata	=	read.table("metadata.tsv",	row.names=1)
+metadata=read.table("metadata.tsv",row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
+metadata_g = read.table("metadata_g.tsv",row.names=1)
+colnames(metadata_g)<-metadata_g[1,]
+metadata_g <- metadata_g[-1,]
+
+
 #	read	in	tree
 ##phy_tree	=	read_tree("phyloseq/tree.nwk")
-phy_tree	=	read_tree("All_AD/tree.nwk")
+phy_tree	=	read_tree("tree.nwk")
 
 #	import	as	phyloseq	objects
-OTU	=	otu_table(otu_table,	taxa_are_rows	=	TRUE)
-TAX	=	tax_table(taxonomy)
-META	=	sample_data(metadata)
+OTU=otu_table(otu_table,taxa_are_rows=TRUE)
+OTUg=otu_table(otu_g_table, taxa_are_rows=TRUE)
+TAX=tax_table(taxonomy)
+META=sample_data(metadata)
+METAg=sample_data(metadata_g)
 #	(tree	was	already	imported	as	a	phyloseq	object)
 
 #	check	that	your	OTU	names	are	consistent	across	objects
@@ -100,10 +113,15 @@ sample_names(OTU)
 sample_names(META)
 
 #	merge	into	one	phyloseq	object
-physeq <- phyloseq(OTU, TAX, META, phy_tree)
-physeq
+#physeq <- phyloseq(OTU, TAX, META, phy_tree) ##원칙상 순서는 이게 아닌데 걍 되는듯
+physeq <- phyloseq(OTU, phy_tree, TAX, META)
+physeq_g <- phyloseq(OTUg, phy_tree, TAX, METAg)
+
 
 #	Now,	continue	to	analysis	in	phyloseq!
+
+
+
 
 
 
@@ -120,7 +138,7 @@ physeq
 #*******Rarefy를 이미 해서 qiime에서 가져오는 것으로 변경하였음******
 #rarefy란 같은 수의 read로 맞추는 것 
 #기존의 qiime에서 가장 작은 수의 sample이 rarefaction(?) graph에서 평평하게 유지ㅎ되는지 확인해야함
-#*******우리 샘플의 경우 13410개가 최소였음*******
+#우리 샘플의 경우 13410개가 최소였음*******<<과거형. 다시 checkup 해야함
 ##rphyseq <- rarefy_even_depth(physeq) #기본값이 최솟값으로 맞추는 것
 ##rphyseq2 <- rarefy_even_depth(physeq, sample.size = 13410) #기본값이 최솟값으로 맞추는 것
 
@@ -133,31 +151,133 @@ physeq
 #relative abundance로 변환
 ##relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #relative abundance 구하는 것으로 예상
 relaphyseq <- transform_sample_counts(physeq, function(otu) {otu/sum(otu)})
+relaphyseq_g <- transform_sample_counts(physeq_g, function(otu) {otu/sum(otu)})
+
+# 얘는 중복되는 AVS를 OTU로 변환하는 것, 완전 별도....
+relaOTU <- tax_glom(relaphyseq, taxrank = "Species")
+##650개에서 94개로 줄었음
+
+#### 다른 시도를 해보았당 처참히 실패했당!
+# Phylum_table <- tax_glom(relaphyseq, taxrank = "Phylum")
+# o<- data.frame(Phylum_table@otu_table)
+# o<- rownames_to_column(o)
+# p<- data.frame(Phylum_table@tax_table[,2])
+# p<- rownames_to_column(p)
+# phylum <- left_join(o, p, by = c("rowname"="rowname"))
+# phylum <- phylum[,-1]
+# phylum[nrow(phylum)+1,] <- colnames(phylum)
+# phylum <- column_to_rownames(phylum, "Phylum")
+# 
+# ggplot(phylum, x="Phylum")+
+#   geom_bar(position="stack", stat="identity")
+# specie <- c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
+# condition <- rep(c("normal" , "stress" , "Nitrogen") , 4)
+# value <- abs(rnorm(12 , 0 , 15))
+# data <- data.frame(specie,condition,value)
+
+
+# 얘는 가까운 taxa를 합치는 것. 이건 많은 수가 taxonomic assignment가 안된 경우에 활용해볼 수 있다.
+# taxa 수가 많은 경우 많이 느리다. 그리고 tree가 반드시 있어야 한다.
+relaOTUtip <- tip_glom(relaphyseq)
+# 애는 훨씬 줄었음 57개가 됐음
+
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#****stacked bar graph of relative abundance***#
+##################### STACKED BAR GRAPH #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-#***group 합ㄱ치는게 안됨 ***#
-##plot_bar(relaphyseq, fill = "Phylum") +
-##  geom_bar(aes(color = Phylum, fill = Phylum), stat = "identity", position = "stack") +
-##  labs(x = "", y="Relative abundance") +
-##  ggtitle("Relative abundance stack bar plot by Treatment") +
-##  scale_color_brewer(palette = 'Pastel1')+
-##  scale_fill_brewer(palette = "Pastel1")+
-##  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-##  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-##  theme_bw()+
-##  theme(axis.line = element_line(size=1),
-##        axis.ticks = element_line(size=1),
-##        panel.border = element_blank(),
-##        panel.grid.major = element_blank(),
-##        panel.grid.minor = element_blank(),
-##        plot.title = element_text(hjust = 0.5, face="bold"),
-##        plot.subtitle = element_text(hjust = 0.5)
-##  )
+#########+ total averages of relative abundance######
+# finding order... 보고 적당히 수기로 해야할 듯
 
+#########++ Class ######
+plot_bar(relaphyseq_g, fill = "Class") +
+  geom_bar(aes(color = Class, fill = Class), 
+           stat = "identity", 
+           position = "stack") +
+  labs(x = "", y="Relative abundance") +
+
+  ggtitle("Relative abundance stack bar plot Total") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  scale_color_brewer(palette = 'Set3')+
+  scale_fill_brewer(palette = "Set3")+
+  scale_y_continuous(expand = c(0,0))+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+ggsave("relative_abd/Group_Class.png", width=6, height=5, units="in", device = "png")
+
+#########++ Phylum ######
+# cat = factor(c(" p__Firmicutes", " p__Bacteroidota", " p__Campilobacterota", 
+#                " p__Cyanobacteria", " p__Proteobacteria", " p__Actinobacteriota",
+#                " p__Desulfobacterota", " p__Deferribacterota", " p__Verrucomicrobiota",
+#                " p__Patescibacteria", "" ))
+
+# sample_data(relaphyseq_g)$group = factor(sample_data(relaphyseq_g)$group, 
+#                                          levels = c("CON", "AD", "AP", "TOTAL"))
+
+plot_bar(relaphyseq_g, fill = "Phylum") +
+  geom_bar(aes(color = Phylum, fill = Phylum),
+           stat = "identity", 
+           position = "stack") +
+
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot Total") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  scale_color_brewer(palette = 'Set3')+
+  scale_fill_brewer(palette = "Set3")+
+  scale_y_continuous(expand = c(0,0))+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+ggsave("relative_abd/Group_Phylum.png", width=6, height=5, units="in", device = "png")
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#########+ stacked bar graph of relative abundance######
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+########## ++ Phylum level ###########
+
+plot_bar(relaphyseq, fill = "Phylum") +
+  geom_bar(aes(color = Phylum, fill = Phylum), stat = "identity", position = "stack") +
+  labs(x = "", y="Relative abundance") +
+  ggtitle("Relative abundance stack bar plot by Treatment") +
+  theme(axis.title = element_text(color="black", face="bold", size=10)) +
+  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
+  scale_color_brewer(palette = 'Set3')+
+  scale_fill_brewer(palette = "Set3")+
+  scale_y_continuous(expand = c(0,0))+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5)
+  )
+
+ggsave("relative_abd/Sample_Phylum.png", width=9, height=5, units="in", device = "png")
+
+
+
+########## ++ Class level ###########
 
 plot_bar(relaphyseq, fill = "Class") +
   geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack") +
@@ -167,6 +287,7 @@ plot_bar(relaphyseq, fill = "Class") +
   theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
   scale_color_brewer(palette = 'Set3')+
   scale_fill_brewer(palette = "Set3")+
+  scale_y_continuous(expand = c(0,0))+
   theme_bw()+
   theme(axis.line = element_line(size=1),
         axis.ticks = element_line(size=1),
@@ -176,6 +297,11 @@ plot_bar(relaphyseq, fill = "Class") +
         plot.title = element_text(hjust = 0.5, face="bold"),
         plot.subtitle = element_text(hjust = 0.5)
   )
+
+ggsave("relative_abd/Sample_Class.png", width=9, height=5, units="in", device = "png")
+
+
+########## ++ Order level ###########
 
 plot_bar(relaphyseq, fill = "Order") +
   geom_bar(aes(color = Order, fill = Order), stat = "identity", position = "stack") +
@@ -185,6 +311,7 @@ plot_bar(relaphyseq, fill = "Order") +
   theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
   #scale_color_brewer(palette = 'Set3')+
   #scale_fill_brewer(palette = "Set3")+
+  scale_y_continuous(expand = c(0,0))+
   theme_bw()+
   theme(axis.line = element_line(size=1),
         axis.ticks = element_line(size=1),
@@ -195,6 +322,11 @@ plot_bar(relaphyseq, fill = "Order") +
         plot.subtitle = element_text(hjust = 0.5)
   )
 
+ggsave("relative_abd/Sample_Order.png", width=13, height=5, units="in", device = "png")
+
+
+########## ++ Family level ###########
+
 plot_bar(relaphyseq, fill = "Family") +
   geom_bar(aes(color = Family, fill = Family), stat = "identity", position = "stack") +
   labs(x = "", y="Relative abundance") +
@@ -203,6 +335,7 @@ plot_bar(relaphyseq, fill = "Family") +
   theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
   #scale_color_brewer(palette = 'Set3')+
   #scale_fill_brewer(palette = "Set3")+
+  scale_y_continuous(expand = c(0,0))+
   theme_bw()+
   theme(axis.line = element_line(size=1),
         axis.ticks = element_line(size=1),
@@ -212,6 +345,10 @@ plot_bar(relaphyseq, fill = "Family") +
         plot.title = element_text(hjust = 0.5, face="bold"),
         plot.subtitle = element_text(hjust = 0.5)
   )
+
+ggsave("relative_abd/Sample_Family.png", width=15, height=5, units="in", device = "png")
+
+
 
 #****stacked bar graph of relative abundance PER GROUP ***#
 ##plot_bar(relaphyseq, fill = "Class") +
