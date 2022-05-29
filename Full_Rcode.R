@@ -2,15 +2,11 @@
 library(ggplot2)
 library(phyloseq)
 library(ape)
-library(phyloseq)
 library(tidyverse)
 library(FSA)
 library(RColorBrewer)
 library(ggpubr)
 library(vegan)
-library(ggplot2)
-library(phyloseq)
-library(ape)
 library(rstatix)
 
 theme_set(
@@ -24,6 +20,10 @@ theme_set(
         plot.subtitle = element_text(hjust = 0.5)
 ))
 
+getwd()
+setwd("All_AD")
+#이건 자기가 설정한 디렉토리 잘 찾아서 진행하기
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ###########################IMPORT DATA##################################
@@ -34,24 +34,24 @@ theme_set(
 
 #******* 수기로 #OTU ID -> OTUID로 변경해야함, 또한 taxonomy라고 써져있는 부분 지워야함.*******
 #	read	in	OTU	table	
-##otu	<-	read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
-otu	<-	read.table(file	=	"All_AD/otu_table.txt",	header	=	TRUE)
+##otu	<- read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
+otu<- read.table(file="otu_table.txt",header = TRUE)
 head(otu)
 
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 ##tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
-tax	<-	read.table(file	=	"All_AD/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
+tax<-read.table(file="taxonomy.tsv",sep='\t',header=TRUE)
 head(tax)
 
 #	merge	files	
-merged_file	<-	merge(otu,	tax,	by.x	=	c("OTUID"),	by.y=c("OTUID"))
+merged_file<-merge(otu,tax,by.x=c("OTUID"),by.y=c("OTUID"))
 head(merged_file)
 
 #	note:	number	of	rows	should	equal	your	shortest	Sile	length,	drops	taxonomy	for	OTUs	that	don’t	exist	in	your	OTU	table
 #	output	merged	.txt	Pile
 ##write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
-write.table(merged_file,	file	=	"All_AD/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
+write.table(merged_file,file="combined_otu_tax.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
 
 #	It	seems	tedious	but	you	need	to	open	the	merged	.txt	file	in	excel	and	split into	two	files:	one	for	taxonomy	(containing	only	the	columns	OTUID	and taxonomic	info)	and	the	other	for	the	OTU	matrix	(containing	only	OTUID	and abundances	in	each	sample).	Note:	for	the	taxonomy	file,	you	need	to	use	data —>	text-to-columns	in	Excel	and	separate	on	semicolon	to	get	columns	for kingdom,	phylum,	class,	etc…	once	you	make	these	two	separate	files	in	excel, save	each	as	a	.csv
 #******* OTUID, taxonomic	info -> taxonomy.csv 로 저장, taxonomy ;->,로 ㅎ변경하여 column으로 만들기*******
@@ -63,20 +63,20 @@ write.table(merged_file,	file	=	"All_AD/combined_otu_tax.tsv",	sep	=	'\t',	col.n
 
 #	read	in	otu	table
 ##otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
-otu_table	=	read.csv("All_AD/otu_matrix.csv",	sep=",",	row.names=1)
+otu_table=read.csv("otu_matrix.csv",sep=",",row.names=1)
 otu_table	=	as.matrix(otu_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 ##taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
-taxonomy	=	read.csv("All_AD/taxonomy.csv",	sep=",",	row.names=1)
+taxonomy=read.csv("taxonomy.csv",sep=",",row.names=1)
 taxonomy	=	as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
 ##metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
-metadata	=	read.table("All_AD/metadata.tsv",	row.names=1)
+metadata	=	read.table("metadata.tsv",	row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
@@ -108,14 +108,14 @@ physeq
 
 
 
-########Ready for Microbiome########
+#Ready for Microbiome analysis
 
 
 
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### Rarefy feature table #############################
+##################### + Rarefy feature table #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #*******Rarefy를 이미 해서 qiime에서 가져오는 것으로 변경하였음******
 #rarefy란 같은 수의 read로 맞추는 것 
@@ -127,7 +127,7 @@ physeq
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### relative abundance #############################
+##################### + relative abundance #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #relative abundance로 변환
@@ -236,26 +236,8 @@ plot_bar(relaphyseq, fill = "Family") +
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### alpha diversity #############################
+##################### ALPHA DIVERSITY #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ##richness1 <- estimate_richness(rphyseq)
@@ -273,7 +255,7 @@ pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### Chao1 ##############
+############### + Chao1 ##############
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 dunn_Chao1 <- dunn_test(data = richness, Chao1 ~ group)
 
@@ -322,7 +304,7 @@ ggsave("alpha_div/Chao1.png", width=3, height=3, units="in", device = "png")
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### Shannon ##############
+############### + Shannon ##############
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 dunn_Shannon <- dunn_test(data = richness, Shannon ~ group)
@@ -359,7 +341,7 @@ ggsave("alpha_div/Shannon.png", width=3, height=3, units="in", device = "png")
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### InvSimpson ##############
+############### + InvSimpson ##############
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 dunn_InvSimpson <- dunn_test(data = richness, InvSimpson ~ group)
@@ -396,7 +378,7 @@ ggsave("alpha_div/InvSimpson.png", width=3, height=3, units="in", device = "png"
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### Fisher ##############
+############### + Fisher ##############
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 dunn_Fisher <- dunn_test(data = richness, Fisher ~ group)
@@ -432,7 +414,7 @@ ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### Beta diversity #############################
+##################### BETA DIVERSITY #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
@@ -441,7 +423,7 @@ ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
 #set.seed(134) ###이거 뭐지
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### PCoA  - bray method #############################
+##################### + PCoA  - bray method #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #calculating bray curtis distance matrix
@@ -481,7 +463,7 @@ plot_ordination(relaphyseq, PCoA_bray, color = "group")+
 ggsave("beta_div/bray.png", width=4, height=3, units="in", device = "png")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### PCoA  - unweighted #############################
+##################### + PCoA  - unweighted #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #calculating unifrac curtis distance matrix
@@ -520,7 +502,7 @@ ggsave("beta_div/unifrac.png", width=4, height=3, units="in", device = "png")
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### PCoA  - weighted #############################
+##################### + PCoA  - weighted #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #calculating wunifrac curtis distance matrix
@@ -561,10 +543,12 @@ ggsave("beta_div/wunifrac.png", width=4, height=3, units="in", device = "png")
 
 
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### FINDING SIGNIFICANT SPECIES #############################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### LEfSe #############################
+##################### + LEfSe #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 library(mia)
 library(lefser)
@@ -604,7 +588,7 @@ ggsave("Other/LEfSe.png", width=10, height=10, units="in", device = "png")
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#####################  Cladogram #############################
+##################### @ Cladogram #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ##*****cladogram 오류 햐결 안됨...****##
@@ -640,7 +624,7 @@ write.table(m_rela_table,	file	=	"phyloseq/m_rela_table.tsv",	sep	=	'\t',	col.na
 # Sample 행
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#####################  Heatmap + taxonomy #############################
+##################### + Heatmap + taxonomy #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 plot_heatmap(
@@ -660,7 +644,7 @@ plot_heatmap(
 plot_ef_dot(lefse)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#####################  MAASLIN #############################
+##################### @ MAASLIN #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #
@@ -688,7 +672,7 @@ plot_ef_dot(lefse)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#####################  correlation  #############################
+##################### + correlation  #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #****가장 많은 종 20개 찾기******
@@ -770,7 +754,7 @@ ggsave("Other/correlation.png", width=10, height=10, units="in", device = "png")
   
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############# Spearman correlation #################
+############# + Spearman correlation #################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
