@@ -1,16 +1,21 @@
 #library에 없는게 있으면 보통 install.packages("")로 설치하면 되고 안되는 경우엔 검색하면 바로 나옴
-library(ggplot2)
-library(phyloseq)
 library(ape)
+library(ggplot2)
+library(ggpubr)
+library(phyloseq)
+library(dplyr)
 library(tidyverse)
 library(FSA)
 library(RColorBrewer)
-library(ggpubr)
 library(vegan)
 library(rstatix)
-library(dplyr)
 library(metagMisc)
 library(MicrobeR)
+library(mia)
+library(lefser)
+library(SummarizedExperiment)
+library(microbiomeMarker)
+
 
 theme_set(
   theme_bw()+
@@ -114,8 +119,8 @@ sample_names(META)
 
 #	merge	into	one	phyloseq	object
 #physeq <- phyloseq(OTU, TAX, META, phy_tree) ##원칙상 순서는 이게 아닌데 걍 되는듯
-physeq <- phyloseq(OTU, phy_tree, TAX, META)
-physeq_g <- phyloseq(OTUg, phy_tree, TAX, METAg)
+rphyseq <- phyloseq(OTU, phy_tree, TAX, META)
+rphyseq_g <- phyloseq(OTUg, phy_tree, TAX, METAg)
 
 
 #	Now,	continue	to	analysis	in	phyloseq!
@@ -150,8 +155,8 @@ physeq_g <- phyloseq(OTUg, phy_tree, TAX, METAg)
 
 #relative abundance로 변환
 ##relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)}) #relative abundance 구하는 것으로 예상
-relaphyseq <- transform_sample_counts(physeq, function(otu) {otu/sum(otu)})
-relaphyseq_g <- transform_sample_counts(physeq_g, function(otu) {otu/sum(otu)})
+relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)})
+relaphyseq_g <- transform_sample_counts(rphyseq_g, function(otu) {otu/sum(otu)})
 
 # 얘는 중복되는 AVS를 OTU로 변환하는 것, 완전 별도....
 relaOTU <- tax_glom(relaphyseq, taxrank = "Species")
@@ -379,7 +384,7 @@ ggsave("relative_abd/Sample_Family.png", width=15, height=5, units="in", device 
 
 ##richness1 <- estimate_richness(rphyseq)
 ##richness2 <- estimate_richness(rphyseq2)
-richness <- estimate_richness(physeq)
+richness <- estimate_richness(rphyseq)
 
 richness$group <- metadata$group
 
@@ -588,7 +593,7 @@ plot_ordination(relaphyseq, PCoA_bray, color = "group")+
   # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
   #              alpha=0.3, #색진하기 정도
   #              geom = "polygon", aes(fill = group))+  
-  stat_conf_ellipse(colour = "transparent", #level=0.3, #level 얼마로 해야하는지 확인.
+  stat_conf_ellipse(colour = "transparent", #level=0.95, #level 얼마로 해야하는지 확인.
                     alpha=0.3, #색진하기 정도
                     geom = "polygon", aes(fill = group))+ 
   scale_color_brewer(palette = 'Pastel1')+
@@ -687,12 +692,6 @@ ggsave("beta_div/wunifrac.png", width=4, height=3, units="in", device = "png")
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### + LEfSe #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-library(mia)
-library(lefser)
-library(tidyverse)
-library(SummarizedExperiment)
-
-library(microbiomeMarker)
 
 # relasum <- makeTreeSummarizedExperimentFromPhyloseq(relaphyseq)
 # unique(relasum$SampleType)
@@ -721,8 +720,52 @@ plot_ef_bar(lefse)+
         plot.subtitle = element_text(hjust = 0.5))
 
 
-ggsave("Other/LEfSe.png", width=10, height=10, units="in", device = "png")
+ggsave("other/LEfSe.png", width=10, height=10, units="in", device = "png")
 
+
+
+
+####+tax로 합치고 돌리면####
+relaOTU <- tax_glom(relaphyseq, taxrank = "Species")
+
+lefseOTU <- run_lefse(relaOTU,"group")
+
+lefse_data_OTU <-data.frame(marker_table(lefseOTU))
+plot_ef_bar(lefseOTU)+
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5))
+
+
+ggsave("other/LEfSeOTU.png", width=10, height=6, units="in", device = "png")
+
+####+tip으로 합치고 돌리면####
+relaOTUtip <- tip_glom(relaphyseq)
+
+lefseOTUtip <- run_lefse(relaOTUtip,"group")
+
+lefse_data_OTUtip <-data.frame(marker_table(lefseOTUtip))
+plot_ef_bar(lefseOTUtip)+
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5))
+
+
+ggsave("other/LEfSeOTUtip.png", width=10, height=7, units="in", device = "png")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### @ Cladogram #############################
