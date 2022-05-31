@@ -17,6 +17,10 @@ library(lefser)
 library(SummarizedExperiment)
 library(microbiomeMarker)
 library(pheatmap)
+library(berryFunctions)
+library(matrixTests)
+library(rstatix)
+library(dunn.test)
 
 
 getwd()
@@ -191,230 +195,120 @@ rela_tip <- tip_glom(relaphyseq)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### RELATIVE ABUNDANCE (STACKED BAR GRAPH) #############################
+##################### RELATIVE ABUNDANCE (for STACKED BAR GRAPH) #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# out put으로 꺼내야 한다
+##### + out put, 개체 별로 꺼내야 한다 ######
 
 # Extract abundance matrix from the phyloseq object
-o = as(otu_table(relaphyseq), "matrix")
-# transpose if necessary
-# if(taxa_are_rows(relaphyseq)){o <- t(o)}
-# Coerce to data.frame
-o = as.data.frame(o)
-t = as(tax_table(relaphyseq), "matrix")
-t = as.data.frame(t)
-rownames(o)
-rownames(t)
 
-j = merge(t, o, by = 0)
-f = file.path('table')
+out_rela <- function(phyloseq, filepath){
+  o = as(otu_table(phyloseq), "matrix")
+  o = as.data.frame(o)
+  t = as(tax_table(phyloseq), "matrix")
+  t = as.data.frame(t)
+  rownames(o)
+  rownames(t)
+  
+  j = merge(t, o, by = 0)
+  write.table(j, file = filepath, sep='\t',col.names=TRUE,row.names=FALSE)
+  return(j)
+}
 
-write.table(j, file = "tables/asv.tsv", sep='\t',col.names=TRUE,row.names=FALSE)
-
-
-
-out_rela <- function(r, f)
-
-
-
-
-
-
+out_asv <- out_rela(relaphyseq, 'tables/asv.tsv')
+out_s7 <- out_rela(rela_tax_s7, 'tables/Species.tsv')
+out_g6 <- out_rela(rela_tax_g6, "tables/Genus.tsv")
+out_f5 <- out_rela(rela_tax_f5, "tables/Family.tsv")
+out_o4 <- out_rela(rela_tax_o4, "tables/Order.tsv")
+out_c3 <- out_rela(rela_tax_c3, "tables/Class.tsv")
+out_p2 <- out_rela(rela_tax_p2, "tables/Phylum.tsv")
+#out_k1 <- out_rela(rela_tax_k1, "tables/Kingdom.tsv")
 
 
 
+out_asv <- rbind(c(NA, NA, NA, NA, NA, NA, NA, NA, 
+                  sample_data(relaphyseq)$group), out_asv)
+#rownames(out_all) <- out_all[,1] 겹치는게 있어서 안됨 ㅠㅠ
+rownames(out_asv)[1] <- "group"
+
+
+tax_asv <- out_asv[,1:8]
+otu_asv <- out_asv[,9:ncol(out_asv)]
+t_asv <- data.frame(t(otu_asv))
+
+
+#####+ taxonomy ######
+
+out_tax <- rbind(out_p2, out_c3, out_o4, out_f5, out_g6, out_s7) 
+#Kingdom이 위에 있어야 구별이 잘됨
+#얘네는 그룹 정보가 빠져있음. 
+
+out_tax <- rbind(c(NA, NA, NA, NA, NA, NA, NA, NA, 
+                   sample_data(relaphyseq)$group), out_tax)
+rownames(out_tax)[1] <- "group"
+
+tax_tax <- out_tax[,1:8]
+otu_tax <- out_tax[,9:ncol(out_tax)]
+t_tax <- data.frame(t(otu_tax))
 
 
 
+##### + statistics asv ######
+
+kwp <- NULL
+dunnt <- NULL
+
+for (i in 1:ncol(t_asv)){
+  
+  #Kruskal test
+  kw <- kruskal.test(t_asv[,i] ~ group, t_asv)
+  kw$p.value
+  kwp <- rbind(kwp, kw$p.value)
+  
+  #Dunn Test, between groups
+  gg <- data.frame(cbind(t_asv[,i], t_asv$group))
+  colnames(gg) <- c('a', 'group')
+  dunn <- dunn_test (data=gg, a ~ group, p.adjust.method = "bonferroni")
+  dunn$p.adj
+  dunnt <- rbind(dunnt, t(dunn$p.adj))
+  
+}
+#오래걸림
 
 
+colnames(kwp) <- c('Kruskal_test')
+View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
+colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
+stat_out_asv <- cbind(out_asv, kwp, dunnt)
+
+##### + statistics tax ######
+
+kwp <- NULL
+dunnt <- NULL
+
+for (i in 1:ncol(t_tax)){
+  
+  #Kruskal test
+  kw <- kruskal.test(t_tax[,i] ~ group, t_tax)
+  kw$p.value
+  kwp <- rbind(kwp, kw$p.value)
+  
+  #Dunn Test, between groups
+  gg <- data.frame(cbind(t_tax[,i], t_tax$group))
+  colnames(gg) <- c('a', 'group')
+  dunn <- dunn_test (data=gg, a ~ group, p.adjust.method = "bonferroni")
+  dunn$p.adj
+  dunnt <- rbind(dunnt, t(dunn$p.adj))
+  
+}
+#오래걸림 
+#Kingdom이 포함되면 너무 많으면 오류 나는 것 같음
 
 
-
-#########+ total averages of relative abundance######
-# finding order... 보고 적당히 수기로 해야할 듯
-
-#########++ Class ######
-plot_bar(relaphyseq_g, fill = "Class") +
-  geom_bar(aes(color = Class, fill = Class), 
-           stat = "identity", 
-           position = "stack") +
-  labs(x = "", y="Relative abundance") +
-
-  ggtitle("Relative abundance stack bar plot Total") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  scale_color_brewer(palette = 'Set3')+
-  scale_fill_brewer(palette = "Set3")+
-  scale_y_continuous(expand = c(0,0))+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
-
-ggsave("relative_abd/Group_Class.png", width=6, height=5, units="in", device = "png")
-
-#########++ Phylum ######
-# cat = factor(c(" p__Firmicutes", " p__Bacteroidota", " p__Campilobacterota", 
-#                " p__Cyanobacteria", " p__Proteobacteria", " p__Actinobacteriota",
-#                " p__Desulfobacterota", " p__Deferribacterota", " p__Verrucomicrobiota",
-#                " p__Patescibacteria", "" ))
-
-# sample_data(relaphyseq_g)$group = factor(sample_data(relaphyseq_g)$group, 
-#                                          levels = c("CON", "AD", "AP", "TOTAL"))
-
-plot_bar(relaphyseq_g, fill = "Phylum") +
-  geom_bar(aes(color = Phylum, fill = Phylum),
-           stat = "identity", 
-           position = "stack") +
-
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot Total") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  scale_color_brewer(palette = 'Set3')+
-  scale_fill_brewer(palette = "Set3")+
-  scale_y_continuous(expand = c(0,0))+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
-
-ggsave("relative_abd/Group_Phylum.png", width=6, height=5, units="in", device = "png")
-
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#########+ stacked bar graph of relative abundance######
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-########## ++ Phylum level ###########
-
-plot_bar(relaphyseq, fill = "Phylum") +
-  geom_bar(aes(color = Phylum, fill = Phylum), stat = "identity", position = "stack") +
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot by Treatment") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  scale_color_brewer(palette = 'Set3')+
-  scale_fill_brewer(palette = "Set3")+
-  scale_y_continuous(expand = c(0,0))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
-
-ggsave("relative_abd/Sample_Phylum.png", width=9, height=5, units="in", device = "png")
-
-
-
-########## ++ Class level ###########
-
-plot_bar(relaphyseq, fill = "Class") +
-  geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack") +
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot by Treatment") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  scale_color_brewer(palette = 'Set3')+
-  scale_fill_brewer(palette = "Set3")+
-  scale_y_continuous(expand = c(0,0))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
-
-ggsave("relative_abd/Sample_Class.png", width=9, height=5, units="in", device = "png")
-
-
-########## ++ Order level ###########
-
-plot_bar(relaphyseq, fill = "Order") +
-  geom_bar(aes(color = Order, fill = Order), stat = "identity", position = "stack") +
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot by Treatment") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  #scale_color_brewer(palette = 'Set3')+
-  #scale_fill_brewer(palette = "Set3")+
-  scale_y_continuous(expand = c(0,0))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
-
-ggsave("relative_abd/Sample_Order.png", width=13, height=5, units="in", device = "png")
-
-
-########## ++ Family level ###########
-
-plot_bar(relaphyseq, fill = "Family") +
-  geom_bar(aes(color = Family, fill = Family), stat = "identity", position = "stack") +
-  labs(x = "", y="Relative abundance") +
-  ggtitle("Relative abundance stack bar plot by Treatment") +
-  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-  #scale_color_brewer(palette = 'Set3')+
-  #scale_fill_brewer(palette = "Set3")+
-  scale_y_continuous(expand = c(0,0))+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5)
-  )
-
-ggsave("relative_abd/Sample_Family.png", width=15, height=5, units="in", device = "png")
-
-
-
-#****stacked bar graph of relative abundance PER GROUP ***#
-##plot_bar(relaphyseq, fill = "Class") +
-##  geom_bar(aes(color = Class, fill = Class), stat = "identity", position = "stack", 
-##           group = META$group) +
-##  labs(x = "", y="Relative abundance") +
-##  ggtitle("Relative abundance stack bar plot by Treatment") +
-##  theme(axis.title = element_text(color="black", face="bold", size=10)) +
-##  theme(plot.title = element_text(color="black", face = "bold", size =12, hjust = 0.5))+
-##  theme_bw()+
-##  theme(axis.line = element_line(size=1),
-##        axis.ticks = element_line(size=1),
-##        panel.border = element_blank(),
-##        panel.grid.major = element_blank(),
-##        panel.grid.minor = element_blank(),
-##        plot.title = element_text(hjust = 0.5, face="bold"),
-##        plot.subtitle = element_text(hjust = 0.5)
-##  )
-
-
-
+colnames(kwp) <- c('Kruskal_test')
+View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
+colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
+stat_out_tax <- cbind(out_tax, kwp, dunnt)
 
 
 
@@ -422,12 +316,11 @@ ggsave("relative_abd/Sample_Family.png", width=15, height=5, units="in", device 
 ##################### ALPHA DIVERSITY #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-##richness1 <- estimate_richness(rphyseq)
-##richness2 <- estimate_richness(rphyseq2)
-richness <- estimate_richness(rphyseq)
+# transposed compared to 
+richness <- data.frame(estimate_richness(rphyseq))
+richness <- rbind(metadata$group, richness)
+#richness$group <- factor (richness$group, levels = c("CON", "AD", "AP"))
 
-richness$group <- metadata$group
-richness$group <- factor (richness$group, levels = c("CON", "AD", "AP"))
 
 #간단하게 전체적으로 살펴보는 방법
 ##plot_richness(rphyseq, sortby = META$group)
@@ -436,169 +329,54 @@ plot_richness(physeq, sortby = META$group)
 ##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
 pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
 
+t_richness <- as.data.frame(t(richness))
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### + Chao1 ##############
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-dunn_Chao1 <- dunn_test(data = richness, Chao1 ~ group)
+kwp <- NULL
+dunnt <- NULL
 
-#draw barplot
+for (i in 1:ncol(richness)){
+  
+  #Kruskal test
+  kw <- kruskal.test(richness[,i] ~ group, richness)
+  kw$p.value
+  kwp <- rbind(kwp, kw$p.value)
+  
+  #Dunn Test, between groups
+  gg <- data.frame(cbind(richness[,i], richness$group))
+  colnames(gg) <- c('a', 'group')
+  dunn <- dunn_test (data=gg, a ~ group, p.adjust.method = "bonferroni")
+  dunnt <- rbind(dunnt, t(dunn$p.adj))
+  
+}
 
-ggplot(data=richness, aes(x=group, y=Chao1)) +
-  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
-  labs(title= 'Chao1', x= ' ', y= ''
-      # , tag = "A"
-       ) +
-  geom_point(aes(fill=group, col=group))+
-#  geom_jitter()+
-  ylim (75, 220) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "kruskal.test", label.y = 210) +  # Add global p-value
-  stat_pvalue_manual(dunn_Chao1, #이게....
-                     y.position = c(180, 200, 190)) +
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5),
-        legend.position= "none",
-  )
+colnames(kwp) <- c('Kruskal_test')
+View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
+colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
+t_richness <- cbind(t_richness, kwp, dunnt)
 
-
-ggsave("alpha_div/Chao1.png", width=3, height=3, units="in", device = "png")
-
-# #one way anova
-# one.way <- aov(Chao1 ~ META$group, data = richness)
-# summary(one.way)
-# 
-# kruskal.test(Chao1 ~ META$group, data = richness)
-# 
-# #pairwise.wilcox.test(chao1_data$chao1, chao1_data$Group,
-# #                    p.adjust.method = "BH")
-# 
-# dunnTest(Chao1 ~ META$group, data = richness,
-#          method="bonferroni")
-
-
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### + Shannon ##############
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-dunn_Shannon <- dunn_test(data = richness, Shannon ~ group)
-
-#draw barplot
-
-ggplot(data=richness, aes(x=group, y=Shannon)) +
-  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
-  labs(title= 'Shannon', x= ' ', y= ''
-       # , tag = "A"
-  ) +
-  geom_point(aes(fill=group, col=group))+
-  #  geom_jitter()+
-  ylim (1.5, 4.5) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "kruskal.test", label.y = 4.4) +  # Add global p-value
-  stat_pvalue_manual(dunn_Shannon, 
-                     y.position = c(3.8, 4.2, 4.0)) +
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5),
-        legend.position= "none",
-  )
-
-ggsave("alpha_div/Shannon.png", width=3, height=3, units="in", device = "png")
-
-
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### + InvSimpson ##############
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-dunn_InvSimpson <- dunn_test(data = richness, InvSimpson ~ group)
-
-#draw barplot
-
-ggplot(data=richness, aes(x=group, y=InvSimpson)) +
-  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
-  labs(title= 'Inverse Simpson', x= ' ', y= ''
-       # , tag = "A"
-  ) +
-  geom_point(aes(fill=group, col=group))+
-  #  geom_jitter()+
-  ylim (1.5, 25) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "kruskal.test", label.y = 24) +  # Add global p-value
-  stat_pvalue_manual(dunn_InvSimpson, 
-                     y.position = c(18, 22, 20)) +
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5),
-        legend.position= "none",
-  )
-
-ggsave("alpha_div/InvSimpson.png", width=3, height=3, units="in", device = "png")
-
-
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############### + Fisher ##############
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-dunn_Fisher <- dunn_test(data = richness, Fisher ~ group)
-
-#draw barplot
-
-ggplot(data=richness, aes(x=group, y=Fisher)) +
-  geom_boxplot(alpha = 0.5, aes(fill=group, col=group)) +
-  labs(title= 'Fisher', x= ' ', y= ''
-       # , tag = "A"
-  ) +
-  geom_point(aes(fill=group, col=group))+
-  #  geom_jitter()+
-  ylim (10, 30) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "kruskal.test", label.y = 29) +  # Add global p-value
-  stat_pvalue_manual(dunn_Fisher, 
-                     y.position = c(26, 28, 27)) +
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5),
-        legend.position= "none",
-  )
-
-ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
 
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### BETA DIVERSITY #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #https://github.com/joey711/phyloseq/issues/1046
