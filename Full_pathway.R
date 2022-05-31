@@ -15,7 +15,7 @@ library("microbiomeMarker")
 
 
 
-
+setwd("All_AD")
 
 
 
@@ -141,13 +141,13 @@ categorize_by_function_l2 <- function(in_ko, kegg_brite_mapping) {
 #*https://www.dropbox.com/s/a5o4li0irsqupt3/picrust1_KO_BRITE_map.tsv?dl=1.
 #*위의 주소에서 다운받을 수 있음
 
-kegg_brite_map <- read.table("picrust2/picrust1_KO_BRITE_map.tsv",
+kegg_brite_map <- read.table("picrust/picrust1_KO_BRITE_map.tsv",
                              header=TRUE, sep="\t", quote = "", stringsAsFactors = FALSE, comment.char="", row.names=1)
 
 #*data 가져오기. K 코드로 되어있는거면 됨. description 필요 없음
 #*QIIME에서 PICRUST2 실행, picrust2_pipeline.py \실행 하면 나옴.
 ### When reading in tab-delimited file of KO predictions (PICRUSt2 output):
-test_ko <- read.table("picrust2/pred_metagenome_unstrat.tsv", header=TRUE, sep="\t", row.names=1)
+test_ko <- read.table("picrust/pred_metagenome_unstrat.tsv", header=TRUE, sep="\t", row.names=1)
 
 
 ### Alternatively, when reading in legacy TSV BIOM file (PICRUSt1 output): 
@@ -168,6 +168,7 @@ test_ko <- read.table("picrust2/pred_metagenome_unstrat.tsv", header=TRUE, sep="
 
 ### Run function to categorize all KOs by level 3 in BRITE hierarchy.
 test_ko_L3 <- categorize_by_function_l3(test_ko, kegg_brite_map)
+
 test_ko_L3_sorted <- test_ko_L3[rownames(orig_ko_L3), ]
 #
 #

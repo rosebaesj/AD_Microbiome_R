@@ -15,6 +15,7 @@ library(mia)
 library(lefser)
 library(SummarizedExperiment)
 library(microbiomeMarker)
+library(pheatmap)
 
 
 theme_set(
@@ -43,13 +44,13 @@ setwd("All_AD")
 #******* 수기로 #OTU ID -> OTUID로 변경해야함, 또한 taxonomy라고 써져있는 부분 지워야함.*******
 #	read	in	OTU	table	
 ##otu	<- read.table(file	=	"phyloseq/DADA2_table.txt",	header	=	TRUE)
-otu<- read.table(file="otu_table.txt",header = TRUE)
+otu<- read.table(file="qiime/otu_table.txt",header = TRUE)
 head(otu)
 
 #******* 역시 수기로 OTUID, not Feature ID*******
 #	read	in	taxonomy	table #taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 ##tax	<-	read.table(file	=	"phyloseq/taxonomy.tsv",	sep	=	'\t',	header	=	TRUE)
-tax<-read.table(file="taxonomy.tsv",sep='\t',header=TRUE)
+tax<-read.table(file="qiime/taxonomy.tsv",sep='\t',header=TRUE)
 head(tax)
 
 #	merge	files	
@@ -59,7 +60,7 @@ head(merged_file)
 #	note:	number	of	rows	should	equal	your	shortest	Sile	length,	drops	taxonomy	for	OTUs	that	don’t	exist	in	your	OTU	table
 #	output	merged	.txt	Pile
 ##write.table(merged_file,	file	=	"phyloseq/combined_otu_tax.tsv",	sep	=	'\t',	col.names	= TRUE,	row.names	=	FALSE)
-write.table(merged_file,file="combined_otu_tax.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
+write.table(merged_file,file="qiime/combined_otu_tax.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
 
 #	It	seems	tedious	but	you	need	to	open	the	merged	.txt	file	in	excel	and	split into	two	files:	one	for	taxonomy	(containing	only	the	columns	OTUID	and taxonomic	info)	and	the	other	for	the	OTU	matrix	(containing	only	OTUID	and abundances	in	each	sample).	Note:	for	the	taxonomy	file,	you	need	to	use	data —>	text-to-columns	in	Excel	and	separate	on	semicolon	to	get	columns	for kingdom,	phylum,	class,	etc…	once	you	make	these	two	separate	files	in	excel, save	each	as	a	.csv
 #******* OTUID, taxonomic	info -> taxonomy.csv 로 저장, taxonomy ;->,로 ㅎ변경하여 column으로 만들기*******
@@ -71,34 +72,34 @@ write.table(merged_file,file="combined_otu_tax.tsv",sep='\t',col.names=TRUE,row.
 
 #	read	in	otu	table
 ##otu_table	=	read.csv("phyloseq/otu_matrix.csv",	sep=",",	row.names=1)
-otu_table=read.csv("otu_matrix.csv",sep=",",row.names=1)
+otu_table=read.csv("qiime/otu_matrix.csv",sep=",",row.names=1)
 otu_table=as.matrix(otu_table)
 ##수기로 만들어야 함
-otu_g_table=read.csv("otu_g_matrix.csv",sep=",",row.names=1)
+otu_g_table=read.csv("qiime/otu_g_matrix.csv",sep=",",row.names=1)
 otu_g_table = as.matrix(otu_g_table)
 
 #	read	in	taxonomy
 #	seperated	by	kingdom	phylum	class	order	family	genus	species
 # taxonomy 에 Kingdom... 이런 식으로 일일히 column name 작성해야함
 ##taxonomy	=	read.csv("phyloseq/taxonomy.csv",	sep=",",	row.names=1)
-taxonomy=read.csv("taxonomy.csv",sep=",",row.names=1)
+taxonomy=read.csv("qiime/taxonomy.csv",sep=",",row.names=1)
 taxonomy=as.matrix(taxonomy)
 
 #	read	in	metadata	
 #	variables	=	???
 ##metadata	=	read.table("phyloseq/metadata.tsv",	row.names=1)
-metadata=read.table("metadata.tsv",row.names=1)
+metadata=read.table("qiime/metadata.tsv",row.names=1)
 colnames(metadata)<-metadata[1,]
 metadata <- metadata[-1,]
 
-metadata_g = read.table("metadata_g.tsv",row.names=1)
+metadata_g = read.table("qiime/metadata_g.tsv",row.names=1)
 colnames(metadata_g)<-metadata_g[1,]
 metadata_g <- metadata_g[-1,]
 
 
 #	read	in	tree
 ##phy_tree	=	read_tree("phyloseq/tree.nwk")
-phy_tree	=	read_tree("tree.nwk")
+phy_tree	=	read_tree("qiime/tree.nwk")
 
 #	import	as	phyloseq	objects
 OTU=otu_table(otu_table,taxa_are_rows=TRUE)
@@ -159,7 +160,8 @@ relaphyseq <- transform_sample_counts(rphyseq, function(otu) {otu/sum(otu)})
 relaphyseq_g <- transform_sample_counts(rphyseq_g, function(otu) {otu/sum(otu)})
 
 # 얘는 중복되는 AVS를 OTU로 변환하는 것, 완전 별도....
-relaOTU <- tax_glom(relaphyseq, taxrank = "Species")
+rela_tax_s <- tax_glom(relaphyseq, taxrank = "Species")
+rela_tax_g <- tax_glom(relaphyseq, taxrank = "Genus")
 ##650개에서 94개로 줄었음
 
 #### 다른 시도를 해보았당 처참히 실패했당!
@@ -183,7 +185,7 @@ relaOTU <- tax_glom(relaphyseq, taxrank = "Species")
 
 # 얘는 가까운 taxa를 합치는 것. 이건 많은 수가 taxonomic assignment가 안된 경우에 활용해볼 수 있다.
 # taxa 수가 많은 경우 많이 느리다. 그리고 tree가 반드시 있어야 한다.
-relaOTUtip <- tip_glom(relaphyseq)
+rela_tip <- tip_glom(relaphyseq)
 # 애는 훨씬 줄었음 57개가 됐음
 
 
@@ -387,6 +389,7 @@ ggsave("relative_abd/Sample_Family.png", width=15, height=5, units="in", device 
 richness <- estimate_richness(rphyseq)
 
 richness$group <- metadata$group
+richness$group <- factor (richness$group, levels = c("CON", "AD", "AP"))
 
 #간단하게 전체적으로 살펴보는 방법
 ##plot_richness(rphyseq, sortby = META$group)
@@ -411,7 +414,7 @@ ggplot(data=richness, aes(x=group, y=Chao1)) +
   geom_point(aes(fill=group, col=group))+
 #  geom_jitter()+
   ylim (75, 220) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "anova", label.y = 210) +  # Add global p-value
+  stat_compare_means(method = "kruskal.test", label.y = 210) +  # Add global p-value
   stat_pvalue_manual(dunn_Chao1, #이게....
                      y.position = c(180, 200, 190)) +
   scale_color_brewer(palette = 'Pastel1')+
@@ -461,7 +464,7 @@ ggplot(data=richness, aes(x=group, y=Shannon)) +
   geom_point(aes(fill=group, col=group))+
   #  geom_jitter()+
   ylim (1.5, 4.5) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "anova", label.y = 4.4) +  # Add global p-value
+  stat_compare_means(method = "kruskal.test", label.y = 4.4) +  # Add global p-value
   stat_pvalue_manual(dunn_Shannon, 
                      y.position = c(3.8, 4.2, 4.0)) +
   scale_color_brewer(palette = 'Pastel1')+
@@ -498,7 +501,7 @@ ggplot(data=richness, aes(x=group, y=InvSimpson)) +
   geom_point(aes(fill=group, col=group))+
   #  geom_jitter()+
   ylim (1.5, 25) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "anova", label.y = 24) +  # Add global p-value
+  stat_compare_means(method = "kruskal.test", label.y = 24) +  # Add global p-value
   stat_pvalue_manual(dunn_InvSimpson, 
                      y.position = c(18, 22, 20)) +
   scale_color_brewer(palette = 'Pastel1')+
@@ -535,7 +538,7 @@ ggplot(data=richness, aes(x=group, y=Fisher)) +
   geom_point(aes(fill=group, col=group))+
   #  geom_jitter()+
   ylim (10, 30) + ##여기 숫자로 원하는 크기로 조정ㅎ가능
-  stat_compare_means(method = "anova", label.y = 29) +  # Add global p-value
+  stat_compare_means(method = "kruskal.test", label.y = 29) +  # Add global p-value
   stat_pvalue_manual(dunn_Fisher, 
                      y.position = c(26, 28, 27)) +
   scale_color_brewer(palette = 'Pastel1')+
@@ -726,9 +729,9 @@ ggsave("other/LEfSe.png", width=10, height=10, units="in", device = "png")
 
 
 ####+tax로 합치고 돌리면####
-relaOTU <- tax_glom(relaphyseq, taxrank = "Species")
+rela_tax <- tax_glom(relaphyseq, taxrank = "Species")
 
-lefseOTU <- run_lefse(relaOTU,"group")
+lefseOTU <- run_lefse(rela_tax,"group")
 
 lefse_data_OTU <-data.frame(marker_table(lefseOTU))
 plot_ef_bar(lefseOTU)+
@@ -747,9 +750,9 @@ plot_ef_bar(lefseOTU)+
 ggsave("other/LEfSeOTU.png", width=10, height=6, units="in", device = "png")
 
 ####+tip으로 합치고 돌리면####
-relaOTUtip <- tip_glom(relaphyseq)
+rela_tip <- tip_glom(relaphyseq)
 
-lefseOTUtip <- run_lefse(relaOTUtip,"group")
+lefseOTUtip <- run_lefse(rela_tip,"group")
 
 lefse_data_OTUtip <-data.frame(marker_table(lefseOTUtip))
 plot_ef_bar(lefseOTUtip)+
@@ -855,36 +858,59 @@ plot_ef_dot(lefse)
 ##################### + correlation  #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
 #****가장 많은 종 20개 찾기******
 topN <- 20
-most_abundant_taxa <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
-print(most_abundant_taxa)
-#physeq20 <- prune_taxa(names(most_abundant_taxa), physeq)
-relaphyseq20 <- prune_taxa(names(most_abundant_taxa), relaphyseq) #얘는 안됨....
-#뭔가 이 prune 명령어가 subgroup 가능하게 하는 것 같음
 
-table_20 <- t(as.matrix(relaphyseq20@otu_table@.Data))
 
-tax_table_20 <- data.frame(relaphyseq20@tax_table)
-tax_table_20
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### ++ ASV => relaphyseq  #############################
+most_abd <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
+print(most_abd)
+#physeq20 <- prune_taxa(names(most_abd), physeq)
+relaphyseq20 <- prune_taxa(names(most_abd), relaphyseq) 
 
-df_table_20 <- data.frame(table_20)
-colnames(table_20)
 
-## colnames(table_20)에서 나온 값들 찾아서 이름 넣기
+##################### ++ tax_glom => rela_tax  #############################
+most_abd <- sort(taxa_sums(rela_tax), TRUE)[1:topN]
+print(most_abd)
+#physeq20 <- prune_taxa(names(most_abd), physeq)
+relaphyseq20 <- prune_taxa(names(most_abd), rela_tax) 
 
-## colnames(table_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
+most_abd <- sort(taxa_sums(rela_tax_g), TRUE)[1:topN]
+print(most_abd)
+#physeq20 <- prune_taxa(names(most_abd), physeq)
+relaphyseq20 <- prune_taxa(names(most_abd), rela_tax_g) 
+
+##################### ++ tip_glom => rela_tip  #############################
+most_abd <- sort(taxa_sums(rela_tip), TRUE)[1:topN]
+print(most_abd)
+#physeq20 <- prune_taxa(names(most_abd), physeq)
+relaphyseq20 <- prune_taxa(names(most_abd), rela_tip) 
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+otu_20 <- t(as.matrix(relaphyseq20@otu_table@.Data))
+tax_20 <- data.frame(relaphyseq20@tax_table)
+View(tax_20)
+
+df_otu_20 <- data.frame(otu_20)
+colnames(df_otu_20) ### 에서 나온 값들 찾아서 이름 넣기
+
+## colnames(otu_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
 ##                       'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
 ##                       'g__Bacteroides_1', 'g__Bacteroides_2', 'g__Muribaculaceae_s_Unid', 'g__Muribaculaceae', 
 ##                       's__uncultured_bacterium_1', 's__uncultured_Bacteroidales_1', 's__uncultured_Bacteroidales_2', 's__uncultured_Bacteroidales_3', 
 ##                       's__uncultured_bacterium_2', 'g__Helicobacter', 'f__Lachnospiraceae', 's__uncultured_Clostridiales')
 
-colnames(table_20) <-c('g__Lactobacillus', 's__Lactobacillus_intestinalis', 'g__Helicobacter', 's__uncultured_Bacteroidales', 
-                       's__uncultured_Bacteroidales', 's__uncultured_Bacteroidales', 's__uncultured_bacterium', 's__uncultured_bacterium', 
-                       'g__Muribaculaceae', 's__unidentified', 'g__Bacteroides', 'g__Bacteroides', 
-                       's__uncultured_bacterium', 's__uncultured_bacterium', 'g__Lactobacillus', 'g__Lactobacillus', 
-                       'c__Bacilli', 'c__Bacilli', 'c__Bacilli', 's__uncultured_Clostridiales')
+# colnames(df_otu_20) <-c('1g__Lactobacillus', '2s__Lactobacillus_intestinalis', '3g__Helicobacter', '4s__uncultured_Bacteroidales', 
+#                        '5s__uncultured_Bacteroidales', '6s__uncultured_Bacteroidales', '7s__uncultured_bacterium', '8s__uncultured_bacterium', 
+#                        '9g__Muribaculaceae', '10s__unidentified', '11g__Bacteroides', '12g__Bacteroides', 
+#                        '13s__uncultured_bacterium', '14s__uncultured_bacterium', '15g__Lactobacillus', '16g__Lactobacillus', 
+#                        '17c__Bacilli', '18c__Bacilli', '19c__Bacilli', '20s__uncultured_Clostridiales')
+# ##이름 겹치면 그래프 덮어쓰기 되니까 주의
 
+colnames(df_otu_20) <- tax_20$Genus
 
 #tax <- physeq20@tax_table@.Data
 
@@ -892,9 +918,9 @@ colnames(table_20) <-c('g__Lactobacillus', 's__Lactobacillus_intestinalis', 'g__
 
 library("corrplot")
 
-correlation <- cor(table_20)
-cor(df_table_20)
-pheatmap(correlation, 
+correlation <- cor(df_otu_20)
+# cor(df_otu_20)
+pheat<- pheatmap(correlation, 
          color = colorRampPalette(c("skyblue", "white", "pink"))(50),
          border_color = "grey",
                    scale = "none", 
@@ -902,36 +928,34 @@ pheatmap(correlation,
                    angle_col = "90",
                    show_colnames = F
 )
+
+#ㅇㅒ는 ggsave로 저장이 안됨. 그래서 저장 함수를 설계 해줘야함
+
+save_pheatmap_pdf <- function(x, filename, width=8, height=5.5) {
+    stopifnot(!missing(x))
+    stopifnot(!missing(filename))
+    pdf(filename, width=width, height=height)
+    grid::grid.newpage()
+    grid::grid.draw(x$gtable)
+    dev.off()
+   }
+
+save_pheatmap_pdf(pheat, "tax/heatmap.pdf")
+
+
+# #이건 다른 ㅇ히트맵.. rela, correlation 아님
+# phyloseq::plot_heatmap(relaphyseq20)
+# #***얘는 다른 heatmap에서 활용할 수 있을 듯 ***
 # 
+# #*** 얘는 삼각형이 가능한 heatmap***
+# corrplot(correlation,
+#          method = 'shade',
+#          type = 'lower'
+#          )
 # 
-# save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
-#     stopifnot(!missing(x))
-#     stopifnot(!missing(filename))
-#     pdf(filename, width=width, height=height)
-#     grid::grid.newpage()
-#     grid::grid.draw(x$gtable)
-#     dev.off()
-#   }
-#   save_pheatmap_pdf(xx, "test.pdf")
+# ggsave("Other/correlation.png", width=10, height=10, units="in", device = "png")
+# 
 #   
-#   
-#   
-# ggsave("Other/correlations.png", width=10, height=7, units="in", device = "png")
-
-
-#이건 다른 ㅇ히트맵.. rela, correlation 아님
-phyloseq::plot_heatmap(relaphyseq20)
-#***얘는 다른 heatmap에서 활용할 수 있을 듯 ***
-
-#*** 얘는 삼각형이 가능한 heatmap***
-corrplot(correlation,
-         method = 'shade',
-         type = 'lower'
-         )
-
-ggsave("Other/correlation.png", width=10, height=10, units="in", device = "png")
-
-  
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ############# + Spearman correlation #################
@@ -941,11 +965,11 @@ ggsave("Other/correlation.png", width=10, height=10, units="in", device = "png")
 #1 
 
 for (i in 1: 20){
-spearman_1 <-cbind(richness$Shannon, df_table_20[i])
-microbname <- colnames(df_table_20[i])
+spearman_1 <-cbind(richness$Shannon, df_otu_20[i])
+microbname <- colnames(df_otu_20[i])
 colnames(spearman_1) <- c('Shannon', 'microb')
 
-paste(colnames(df_table_20[i]))                         
+paste(colnames(df_otu_20[i]))                         
                           
 fit <- lm(Shannon ~ microb, data = spearman_1)
 summary(fit)
@@ -956,7 +980,7 @@ ggplot(spearman_1,aes(microb, Shannon))+
   #  stat_summary(fun.data=mean_cl_normal) +
   geom_smooth(method='lm', col = 'pink', fill = 'pink')+
   xlab('Relative Abundance')+
-  labs(title = paste(colnames(df_table_20[i])), 
+  labs(title = paste(colnames(df_otu_20[i])), 
        caption = paste(" adj R^2 = ",signif(summary(fit)$adj.r.squared, 5),
                          #                   "\n", "Intercept =",signif(fit$coef[[1]],5 ),
                          #                   "Slope =",signif(fit$coef[[2]], 5), "\n",
@@ -966,8 +990,8 @@ ggplot(spearman_1,aes(microb, Shannon))+
 #이런 경우에는 그냥 0으로 간주한다.
 
 ggsave(width = 3.5, height = 3.5, dpi = 300, units = "in",
-       filename = paste(colnames(df_table_20[i]),".png"),
-       path = "correlation/",
+       filename = paste(i, colnames(df_otu_20[i]), ".png"),
+       path = "tax/",
        device = "png"
        )
 }
