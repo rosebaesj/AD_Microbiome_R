@@ -13,7 +13,7 @@ library(rstatix)
 library(metagMisc)
 library(MicrobeR)
 library(mia)
-library(lefser)
+#library(lefser)
 library(SummarizedExperiment)
 library(microbiomeMarker)
 library(pheatmap)
@@ -21,6 +21,7 @@ library(berryFunctions)
 library(matrixTests)
 library(rstatix)
 library(dunn.test)
+library(philr)
 
 
 getwd()
@@ -165,6 +166,22 @@ rela_tax_c3 <- tax_glom(relaphyseq, taxrank = "Class")
 rela_tax_p2 <- tax_glom(relaphyseq, taxrank = "Phylum")
 rela_tax_k1 <- tax_glom(relaphyseq, taxrank = "Kingdom")
 
+tax_7s <- data.frame(tax_table(rela_tax_s7))
+otu_7s <- data.frame(otuTable(rela_tax_s7))
+
+m_7s <- cbind(tax_7s, otu_7s)
+write.table(m_7s,file="tables/table_7s.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
+
+merge_tax_asv <- data.frame(tax_table(relaphyseq))
+merge_otu_asv <- data.frame(otuTable(relaphyseq))
+
+merge_asv <- cbind(merge_tax_asv, merge_otu_asv)
+write.table(merge_asv,file="tables/merge_asv.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
+
+
+
+
+
 
 
 #### 다른 시도를 해보았당 처참히 실패했당!
@@ -281,6 +298,10 @@ View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
 colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
 stat_out_asv <- cbind(out_asv, kwp, dunnt)
 
+write.table(stat_out_asv, file = "tables/stat_out_asv.tsv", sep='\t',col.names=TRUE,row.names=FALSE)
+
+
+
 ##### + statistics tax ######
 
 kwp <- NULL
@@ -310,26 +331,30 @@ View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
 colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
 stat_out_tax <- cbind(out_tax, kwp, dunnt)
 
+write.table(stat_out_tax, file = "tables/stat_out_tax.tsv", sep='\t',col.names=TRUE,row.names=FALSE)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### ALPHA DIVERSITY #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+#######+ richness data ############
 # transposed compared to 
 richness <- data.frame(estimate_richness(rphyseq))
-richness <- rbind(metadata$group, richness)
-#richness$group <- factor (richness$group, levels = c("CON", "AD", "AP"))
+richness <- cbind(metadata$group, richness)
+colnames(richness)[1] <- "group"
 
 
 #간단하게 전체적으로 살펴보는 방법
 ##plot_richness(rphyseq, sortby = META$group)
-plot_richness(physeq, sortby = META$group)
 
 ##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
-pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
+#pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
 
 t_richness <- as.data.frame(t(richness))
+t_richness <- cbind(rownames(t_richness), t_richness)
+
+##### + statistics #############
 
 kwp <- NULL
 dunnt <- NULL
@@ -352,9 +377,11 @@ for (i in 1:ncol(richness)){
 colnames(kwp) <- c('Kruskal_test')
 View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
 colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
-t_richness <- cbind(t_richness, kwp, dunnt)
+stat_alpha_div <- cbind(t_richness, kwp, dunnt)
 
 
+write.table(stat_alpha_div, file = "tables/stat_alpha_div.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -362,142 +389,83 @@ t_richness <- cbind(t_richness, kwp, dunnt)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
+##### + distance calculation ####
+
+bray <- phyloseq::distance(rphyseq, method = "bray")
+unifrac <- phyloseq::distance(rphyseq, method = "unifrac")
+wunifrac <- phyloseq::distance(rphyseq, method = "wunifrac")
+jsd <- phyloseq::distance(rphyseq, method = "jsd")
+euclidean <- phyloseq::distance(rphyseq, method = "euclidean")
+dpcoa <- phyloseq::distance(rphyseq, method = "dpcoa") #되긴 되는데 이상함
+
+# ordinate <- phyloseq::ordinate (rphyseq, method = "PCoA", distance = "bray")
+# plot_ordination(rphyseq, ordinate, color = "group")
+
+dMETA<- data.frame(META)
+
+beta <- c("bray", "unifrac", "wunifrac", "jsd", "euclidean", "dpcoa")
+
+
+##### + ADONIS, PERMANOVA ####
+
+
+ADONIS_bray <- adonis2(bray ~ group, data = dMETA)
+ADONIS_unifrac <- adonis2(unifrac ~ group, data = dMETA)
+ADONIS_wunifrac <- adonis2(wunifrac ~ group, data = dMETA)
+ADONIS_jsd <- adonis2(jsd ~ group, data = dMETA)
+ADONIS_euclidean <- adonis2(euclidean ~ group, data = dMETA)
+ADONIS_dpcoa <- adonis2(dpcoa ~ group, data = dMETA)
+
+# beta <- betadisper (distance, meta$group)
+# permutest(beta)
+# #permutest: dispersion compare (이거는 유의미하지 않아야함)
+
+ADONIS <- rbind(ADONIS_bray[1,],
+                ADONIS_unifrac[1,], 
+                ADONIS_wunifrac[1,],
+                ADONIS_jsd[1,], 
+                ADONIS_euclidean[1,], 
+                ADONIS_dpcoa[1,])
+
+rownames(ADONIS) <- beta
+
+
+##### + ANOSIM ####
+
+ANOSIM_bray <- anosim(bray, META$group)
+ANOSIM_unifrac <- anosim(unifrac, META$group)
+ANOSIM_wunifrac <- anosim(wunifrac, META$group)
+ANOSIM_jsd <- anosim(jsd, META$group)
+ANOSIM_euclidean <- anosim(euclidean, META$group)
+ANOSIM_dpcoa <- anosim(dpcoa, META$group)
+
+
+#R 값은 $statistic, p value는 $signif 에 저장되어 있어서 불러오면 됨.
+ANOSIM_R <- rbind(ANOSIM_bray$statistic,
+                ANOSIM_unifrac$statistic,
+                ANOSIM_wunifrac$statistic,
+                ANOSIM_jsd$statistic,
+                ANOSIM_euclidean$statistic,
+                ANOSIM_dpcoa$statistic)
+
+rownames(ANOSIM_R) <- beta
+
+ANOSIM_P <- rbind(ANOSIM_bray$signif,
+                  ANOSIM_unifrac$signif,
+                  ANOSIM_wunifrac$signif,
+                  ANOSIM_jsd$signif,
+                  ANOSIM_euclidean$signif,
+                  ANOSIM_dpcoa$signif)
+rownames(ANOSIM_P) <- beta
 
 
 
+##### + total statistics ####
 
+stat_beta_div <- cbind(beta, ADONIS, ANOSIM_R, ANOSIM_P)
 
-
-
-
-
-
-
-
-
-
-
-
-
-#https://github.com/joey711/phyloseq/issues/1046
-
-#set.seed(134) ###이거 뭐지
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### + PCoA  - bray method #############################
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-#calculating bray curtis distance matrix
-PCoA_bray <- ordinate(relaphyseq, 
-                         method ="PCoA", #defalt 가 DCA라는데
-                         distance = "bray")
-
-#making a data frame from the sample_data
-sampledf2 <- data.frame(sample_data(relaphyseq))
-
-
-#running adonis test
-
-
-
-
-PCoA_bray_d <- phyloseq::distance(relaphyseq, method = "bray")
-adonis2_bray <- adonis2(PCoA_bray_d ~ META$group, data = sampledf2) #0.007
-adonis2(PCoA_bray_d ~ META$group, data = sampledf2)
-anosim_bray <- anosim(PCoA_bray_d, grouping = META$group)
-##그리기...
-#theme_set(theme_bw())
-
-plot_ordination(relaphyseq, PCoA_bray, color = "group")+
-  # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
-  #              alpha=0.3, #색진하기 정도
-  #              geom = "polygon", aes(fill = group))+  
-  stat_conf_ellipse(colour = "transparent", #level=0.95, #level 얼마로 해야하는지 확인.
-                    alpha=0.3, #색진하기 정도
-                    geom = "polygon", aes(fill = group))+ 
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  labs(title = "Bray",
-       caption = paste("PERMANOVA = ", adonis2_bray$`Pr(>F)`[1],
-                           ", ANOSIM = ", anosim_bray$signif))
-
-ggsave("beta_div/bray.png", width=4, height=3, units="in", device = "png")
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### + PCoA  - unweighted #############################
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-#calculating unifrac curtis distance matrix
-PCoA_unifrac <- ordinate(relaphyseq, 
-                      method ="PCoA", #defalt 가 DCA라는데
-                      distance = "unifrac")
-
-#making a data frame from the sample_data
-
-sampledf2 <- data.frame(sample_data(relaphyseq))
-
-
-#running adonis test
-
-PCoA_unifrac_d <- phyloseq::distance(relaphyseq, method = "unifrac")
-adonis2_unifrac <- adonis2(PCoA_unifrac_d ~ META$group, data = sampledf2) #0.007
-anosim_unifrac <- anosim(PCoA_unifrac_d, grouping = META$group)
-##그리기...
-#theme_set(theme_bw())
-
-plot_ordination(relaphyseq, PCoA_unifrac, color = "group")+
-  # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
-  #              alpha=0.3, #색진하기 정도
-  #              geom = "polygon", aes(fill = group))+  
-  stat_conf_ellipse(colour = "transparent", #level=0.3, #level 얼마로 해야하는지 확인.
-                    alpha=0.3, #색진하기 정도
-                    geom = "polygon", aes(fill = group))+ 
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  labs(title = "Unweighted Unifrac",
-       caption = paste("PERMANOVA = ", adonis2_unifrac$`Pr(>F)`[1],
-                       ", ANOSIM = ", anosim_unifrac$signif))
-
-ggsave("beta_div/unifrac.png", width=4, height=3, units="in", device = "png")
-
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### + PCoA  - weighted #############################
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-#calculating wunifrac curtis distance matrix
-PCoA_wunifrac <- ordinate(relaphyseq, 
-                         method ="PCoA", #defalt 가 DCA라는데
-                         distance = "wunifrac")
-
-#making a data frame from the sample_data
-
-sampledf2 <- data.frame(sample_data(relaphyseq))
-
-
-#running adonis test
-
-PCoA_wunifrac_d <- phyloseq::distance(relaphyseq, method = "wunifrac")
-adonis2_wunifrac <- adonis2(PCoA_wunifrac_d ~ META$group, data = sampledf2) #0.007
-anosim_wunifrac <- anosim(PCoA_wunifrac_d, grouping = META$group)
-##그리기...
-#theme_set(theme_bw())
-
-plot_ordination(relaphyseq, PCoA_wunifrac, color = "group")+
-  # stat_ellipse(colour = "transparent", level=0.3, #level 얼마로 해야하는지 확인.
-  #              alpha=0.3, #색진하기 정도
-  #              geom = "polygon", aes(fill = group))+  
-  stat_conf_ellipse(colour = "transparent", #level=0.3, #level 얼마로 해야하는지 확인.
-                    alpha=0.3, #색진하기 정도
-                    geom = "polygon", aes(fill = group))+ 
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  labs(title = "Weighted Unifrac",
-       caption = paste("PERMANOVA = ", adonis2_wunifrac$`Pr(>F)`[1],
-                       ", ANOSIM = ", anosim_wunifrac$signif))
-
-ggsave("beta_div/wunifrac.png", width=4, height=3, units="in", device = "png")
+write.table(stat_beta_div, file = "tables/stat_beta_div.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
 
 
 
@@ -512,79 +480,35 @@ ggsave("beta_div/wunifrac.png", width=4, height=3, units="in", device = "png")
 ##################### + LEfSe #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# relasum <- makeTreeSummarizedExperimentFromPhyloseq(relaphyseq)
-# unique(relasum$SampleType)
-# 
-# SummarizedExperiment(relaphyseq)
-# lefser(relasum, groupCol = "group")
-#*****lefse에서 2개 군만 선별해서 돌리ㄹ는 법을 찾아야함-> 해결 못했음****###
-#*****lefse와 maaslin에서도 동일 data set으로 돌아가려면 rarefaction을 R로 넘어오기 전에 해야할듯??****###
-#Summarized Experiment로 아예 그룹을 빼고 physeq를 만들어봐야할 긋?
+#기본 lda_cutoff = 2
+
+lefse_asv_none <- run_lefse(relaphyseq,"group", taxa_rank = "none") #ASV 단위
+lefse_asv_all <- run_lefse(relaphyseq,"group", taxa_rank = "all") #taxa level에서 자동으로 merge
+lefse_asv_7s <- run_lefse(relaphyseq,"group", taxa_rank = "Species")
+
+m_lefse_asv_none <- marker_table(lefse_asv_none)
+m_lefse_asv_all <- marker_table(lefse_asv_all)
+m_lefse_asv_7s <- marker_table(lefse_asv_7s)
+
+View(m_lefse_asv_all)
+#이름순으로 정렬해서 상위단계는 지워버리기
 
 
+write.table(m_lefse_asv_none, 
+            file = "tables/lefse_asv_none.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
 
-lefse <- run_lefse(relaphyseq,"group")
+write.table(m_lefse_asv_all, 
+            file = "tables/lefse_asv_all.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
 
-lefse_data <-data.frame(marker_table(lefse))
-plot_ef_bar(lefse)+
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5))
-
-
-ggsave("other/LEfSe.png", width=10, height=10, units="in", device = "png")
+write.table(m_lefse_asv_7s, 
+            file = "tables/lefse_asv_7s.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
 
 
 
 
-####+tax로 합치고 돌리면####
-rela_tax <- tax_glom(relaphyseq, taxrank = "Species")
-
-lefseOTU <- run_lefse(rela_tax,"group")
-
-lefse_data_OTU <-data.frame(marker_table(lefseOTU))
-plot_ef_bar(lefseOTU)+
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5))
-
-
-ggsave("other/LEfSeOTU.png", width=10, height=6, units="in", device = "png")
-
-####+tip으로 합치고 돌리면####
-rela_tip <- tip_glom(relaphyseq)
-
-lefseOTUtip <- run_lefse(rela_tip,"group")
-
-lefse_data_OTUtip <-data.frame(marker_table(lefseOTUtip))
-plot_ef_bar(lefseOTUtip)+
-  scale_color_brewer(palette = 'Pastel1')+
-  scale_fill_brewer(palette = "Pastel1")+
-  theme_bw()+
-  theme(axis.line = element_line(size=1),
-        axis.ticks = element_line(size=1),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, face="bold"),
-        plot.subtitle = element_text(hjust = 0.5))
-
-
-ggsave("other/LEfSeOTUtip.png", width=10, height=7, units="in", device = "png")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### @ Cladogram #############################
@@ -623,7 +547,7 @@ write.table(m_rela_table,	file	=	"phyloseq/m_rela_table.tsv",	sep	=	'\t',	col.na
 # Sample 행
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### + Heatmap + taxonomy #############################
+##################### + @Heatmap + taxonomy #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 plot_heatmap(
@@ -671,7 +595,7 @@ plot_ef_dot(lefse)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### + correlation  #############################
+##################### + @correlation  #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
@@ -680,14 +604,14 @@ topN <- 20
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### ++ ASV => relaphyseq  #############################
+##################### ++ @ASV => relaphyseq  #############################
 most_abd <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
 print(most_abd)
 #physeq20 <- prune_taxa(names(most_abd), physeq)
 relaphyseq20 <- prune_taxa(names(most_abd), relaphyseq) 
 
 
-##################### ++ tax_glom => rela_tax  #############################
+##################### ++ @tax_glom => rela_tax  #############################
 most_abd <- sort(taxa_sums(rela_tax), TRUE)[1:topN]
 print(most_abd)
 #physeq20 <- prune_taxa(names(most_abd), physeq)
@@ -698,7 +622,7 @@ print(most_abd)
 #physeq20 <- prune_taxa(names(most_abd), physeq)
 relaphyseq20 <- prune_taxa(names(most_abd), rela_tax_g) 
 
-##################### ++ tip_glom => rela_tip  #############################
+##################### ++ @tip_glom => rela_tip  #############################
 most_abd <- sort(taxa_sums(rela_tip), TRUE)[1:topN]
 print(most_abd)
 #physeq20 <- prune_taxa(names(most_abd), physeq)
@@ -774,7 +698,7 @@ save_pheatmap_pdf(pheat, "tax/heatmap.pdf")
 #   
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-############# + Spearman correlation #################
+############# + @Spearman correlation #################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
