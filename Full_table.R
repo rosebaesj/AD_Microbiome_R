@@ -20,7 +20,6 @@ library(pheatmap)
 library(berryFunctions)
 library(matrixTests)
 library(rstatix)
-library(dunn.test)
 library(philr)
 
 
@@ -209,129 +208,78 @@ write.table(merge_asv,file="tables/merge_asv.tsv",sep='\t',col.names=TRUE,row.na
 rela_tip <- tip_glom(relaphyseq)
 # 애는 훨씬 줄었음 57개가 됐음
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### Statistic Functions #############################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+kdms <- function (data, group) {
+  #input data should have features in rows and samples in columns
+  t_data <- data.frame(t(data))
+  msd <- NULL
+  kwp <- NULL
+  dunnt <- NULL
+  
+  for (i in 1:ncol(t_data)){
+    #Mean
+    m <- aggregate(as.numeric(t_data[,i]), list(g), FUN= mean)
+    sd <- aggregate(as.numeric(t_data[,i]), list(g), FUN= sd)
+    msd <- rbind(msd,c(m[1,2], sd[1,2], m[2,2], sd[2,2], m[3,2], sd[3,2]))
+    
+    #Kruskal test
+    kw <- kruskal.test(t_data[,i] ~ g, t_data)
+    kwp <- rbind(kwp, kw$p.value)
+    
+    #Dunn Test, between groups
+    gg <- data.frame(cbind(t_data[,i], g))
+    colnames(gg) <- c('a', 'g')
+    dunn <- dunn_test(data=gg, a ~ g, p.adjust.method = "bonferroni")
+    dunnt <- rbind(dunnt, c(dunn$p.adj)) 
+  }#takes time
+  
+  # View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
+  # View(m) #여기에서 나오는 그룹 순서대로 적으면 됨
+  s <- cbind(kwp, dunnt, msd)
+  colnames(s) <- c('Kruskal_test', 'Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON',
+                      'AD_mean', 'AD_SD','AP_mean', 'AP_SD', 'CON_mean', 'CON_SD')
+  return(s)
+}
+
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### RELATIVE ABUNDANCE (for STACKED BAR GRAPH) #############################
+##################### RELATIVE ABUNDANCE Function (for STACKED BAR GRAPH) #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ##### + out put, 개체 별로 꺼내야 한다 ######
 
 # Extract abundance matrix from the phyloseq object
 
-out_rela <- function(phyloseq, filepath){
+rela_abd_stat <- function(phyloseq, filepath){
+
   o = as(otu_table(phyloseq), "matrix")
-  o = as.data.frame(o)
   t = as(tax_table(phyloseq), "matrix")
-  t = as.data.frame(t)
-  rownames(o)
-  rownames(t)
-  
-  j = merge(t, o, by = 0)
+  g = sample_data(phyloseq)$group
+
+  stat <- kdms(o, g)
+
+  j <- cbind(t, stat, o)
   write.table(j, file = filepath, sep='\t',col.names=TRUE,row.names=FALSE)
   return(j)
 }
 
-out_asv <- out_rela(relaphyseq, 'tables/asv.tsv')
-out_s7 <- out_rela(rela_tax_s7, 'tables/Species.tsv')
-out_g6 <- out_rela(rela_tax_g6, "tables/Genus.tsv")
-out_f5 <- out_rela(rela_tax_f5, "tables/Family.tsv")
-out_o4 <- out_rela(rela_tax_o4, "tables/Order.tsv")
-out_c3 <- out_rela(rela_tax_c3, "tables/Class.tsv")
-out_p2 <- out_rela(rela_tax_p2, "tables/Phylum.tsv")
-#out_k1 <- out_rela(rela_tax_k1, "tables/Kingdom.tsv")
 
+#takes time
+out_asv <- rela_abd_stat(relaphyseq, 'tables/rela_asv.tsv')
+out_s7 <- rela_abd_stat(rela_tax_s7, 'tables/rela_Species.tsv')
+out_g6 <- rela_abd_stat(rela_tax_g6, "tables/rela_Genus.tsv")
+out_f5 <- rela_abd_stat(rela_tax_f5, "tables/rela_Family.tsv")
+out_o4 <- rela_abd_stat(rela_tax_o4, "tables/rela_Order.tsv")
+out_c3 <- rela_abd_stat(rela_tax_c3, "tables/rela_Class.tsv")
+out_p2 <- rela_abd_stat(rela_tax_p2, "tables/rela_Phylum.tsv")
+#out_k1 <- rela_abd_stat(rela_tax_k1, "tables/Kingdom.tsv") 
+# Kingdom is meaningless, there are only Bacterias
 
-
-out_asv <- rbind(c(NA, NA, NA, NA, NA, NA, NA, NA, 
-                  sample_data(relaphyseq)$group), out_asv)
-#rownames(out_all) <- out_all[,1] 겹치는게 있어서 안됨 ㅠㅠ
-rownames(out_asv)[1] <- "group"
-
-
-tax_asv <- out_asv[,1:8]
-otu_asv <- out_asv[,9:ncol(out_asv)]
-t_asv <- data.frame(t(otu_asv))
-
-
-#####+ taxonomy ######
-
-out_tax <- rbind(out_p2, out_c3, out_o4, out_f5, out_g6, out_s7) 
-#Kingdom이 위에 있어야 구별이 잘됨
-#얘네는 그룹 정보가 빠져있음. 
-
-out_tax <- rbind(c(NA, NA, NA, NA, NA, NA, NA, NA, 
-                   sample_data(relaphyseq)$group), out_tax)
-rownames(out_tax)[1] <- "group"
-
-tax_tax <- out_tax[,1:8]
-otu_tax <- out_tax[,9:ncol(out_tax)]
-t_tax <- data.frame(t(otu_tax))
-
-
-
-##### + statistics asv ######
-
-kwp <- NULL
-dunnt <- NULL
-
-for (i in 1:ncol(t_asv)){
-  
-  #Kruskal test
-  kw <- kruskal.test(t_asv[,i] ~ group, t_asv)
-  kw$p.value
-  kwp <- rbind(kwp, kw$p.value)
-  
-  #Dunn Test, between groups
-  gg <- data.frame(cbind(t_asv[,i], t_asv$group))
-  colnames(gg) <- c('a', 'group')
-  dunn <- dunn_test (data=gg, a ~ group, p.adjust.method = "bonferroni")
-  dunn$p.adj
-  dunnt <- rbind(dunnt, t(dunn$p.adj))
-  
-}
-#오래걸림
-
-
-colnames(kwp) <- c('Kruskal_test')
-View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
-colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
-stat_out_asv <- cbind(out_asv, kwp, dunnt)
-
-write.table(stat_out_asv, file = "tables/stat_out_asv.tsv", sep='\t',col.names=TRUE,row.names=FALSE)
-
-
-
-##### + statistics tax ######
-
-kwp <- NULL
-dunnt <- NULL
-
-for (i in 1:ncol(t_tax)){
-  
-  #Kruskal test
-  kw <- kruskal.test(t_tax[,i] ~ group, t_tax)
-  kw$p.value
-  kwp <- rbind(kwp, kw$p.value)
-  
-  #Dunn Test, between groups
-  gg <- data.frame(cbind(t_tax[,i], t_tax$group))
-  colnames(gg) <- c('a', 'group')
-  dunn <- dunn_test (data=gg, a ~ group, p.adjust.method = "bonferroni")
-  dunn$p.adj
-  dunnt <- rbind(dunnt, t(dunn$p.adj))
-  
-}
-#오래걸림 
-#Kingdom이 포함되면 너무 많으면 오류 나는 것 같음
-
-
-colnames(kwp) <- c('Kruskal_test')
-View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
-colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
-stat_out_tax <- cbind(out_tax, kwp, dunnt)
-
-write.table(stat_out_tax, file = "tables/stat_out_tax.tsv", sep='\t',col.names=TRUE,row.names=FALSE)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -339,49 +287,23 @@ write.table(stat_out_tax, file = "tables/stat_out_tax.tsv", sep='\t',col.names=T
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 #######+ richness data ############
-# transposed compared to 
-richness <- data.frame(estimate_richness(rphyseq))
-richness <- cbind(metadata$group, richness)
-colnames(richness)[1] <- "group"
-
-
 #간단하게 전체적으로 살펴보는 방법
 ##plot_richness(rphyseq, sortby = META$group)
 
+richness <- data.frame(estimate_richness(rphyseq))
+t_richness <- t(richness)
+group <- sample_data(rphyseq)$group
+  
+stat <- kdms(t_richness, group)
+alpha_div <- c(rownames(t_richness))
+alpha_div <- cbind(alpha_div, stat, t_richness)
+
+write.table(alpha_div, file = "tables/stat_alpha_div.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
+
+
 ##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
 #pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
-
-t_richness <- as.data.frame(t(richness))
-t_richness <- cbind(rownames(t_richness), t_richness)
-
-##### + statistics #############
-
-kwp <- NULL
-dunnt <- NULL
-
-for (i in 1:ncol(richness)){
-  
-  #Kruskal test
-  kw <- kruskal.test(richness[,i] ~ group, richness)
-  kw$p.value
-  kwp <- rbind(kwp, kw$p.value)
-  
-  #Dunn Test, between groups
-  gg <- data.frame(cbind(richness[,i], richness$group))
-  colnames(gg) <- c('a', 'group')
-  dunn <- dunn_test (data=gg, a ~ group, p.adjust.method = "bonferroni")
-  dunnt <- rbind(dunnt, t(dunn$p.adj))
-  
-}
-
-colnames(kwp) <- c('Kruskal_test')
-View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
-colnames(dunnt) <- c('Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON')
-stat_alpha_div <- cbind(t_richness, kwp, dunnt)
-
-
-write.table(stat_alpha_div, file = "tables/stat_alpha_div.tsv", sep='\t',
-            col.names=TRUE,row.names=FALSE)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -463,12 +385,12 @@ rownames(ANOSIM_P) <- beta
 ##### + total statistics ####
 
 stat_beta_div <- cbind(beta, ADONIS, ANOSIM_R, ANOSIM_P)
+colnames(stat_beta_div) <- c("beta_div", "ADONIS_Df", "ADONIS_SumOfSqs",
+                             "ADONIS_R2","ADONIS_F", "ADONIS_Pr(>F)",
+                             "ANOSIM_R", "ANOSIM_P")
 
 write.table(stat_beta_div, file = "tables/stat_beta_div.tsv", sep='\t',
             col.names=TRUE,row.names=FALSE)
-
-
-
 
 
 

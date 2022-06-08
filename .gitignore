@@ -37,3 +37,8 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+
+#Input, Output
+/All_AD/
+/without_AD/
