@@ -2,22 +2,160 @@
 library("phyloseq")
 library("ggplot2") 
 library("microbiomeMarker")
+# library(ape)
+# library(ggpubr)
+# library(plyr)
+# library(dplyr)
+# library(tidyverse)
+# library(FSA)
+library(RColorBrewer)
+# library(vegan)
+# library(rstatix)
+# library(metagMisc)
+# library(MicrobeR)
+# library(mia)
+#library(SummarizedExperiment)
+# library(pheatmap)
+# library(berryFunctions)
+# library(matrixTests)
+library(rstatix)
+# library(philr)
 
 
-########################################################################
-############################################################
+
+##library list 찾아야함. 만약 function 작ㅇ동 안되는 경우 검색해서 해당 package library에서 불러와서 실행
+
+
+setwd("All_AD")
+getwd()
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+######################### IMPORT DATA ###########################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+#+ qiime picrust2 plugin output needed
+#+ 0610 - MetaCyc output "path_abun_unstrat_descrip.tsv" used
+#+ cf ) pred_metagenome_unstrat_descrip.tsv is in EC format, asv 기준
+#+ around 300 features presented
+
+#+ 처음 추출되는 path_abun_unstrat_descrip.tsv 경우 tsv인데 띄어쓰기가 있어 '\t'로 구분해줘야함
+#+ csv ','의 경우 이름 안에 있는 경우도 있기 때문에 사용할 수 없음
+#+ 또한 prime의 경우 qoute로 인식되어 문제가 발생하는데, 
+#+ 사실상 prime에 해당하는 ′와
+#+ qoute에 해당하는 ' 는 다른 유니코드를 쓰기 때문에 
+#+ ctrl+f 해서 '를 ′로 바꿔주면 에러 없이 import 가능해진다.
+
+pathway <- read.table(file="picrust/path_abun_unstrat_descrip.tsv", 
+                                  sep='\t', header = TRUE)
+
+# check the number of rows to make sure we have all the pathways in the table
+# we don't need pathway code names, just the descriptions
+rownames(pathway) <- pathway[,2]
+pathway <- pathway [,c(-1, -2)]
+
+metadata=read.table("qiime/metadata.tsv", header=TRUE)
+group <- metadata$group
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### + relative abundance #############################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# rarefaction 된 후에 하는 것이니까 relative로 만들 필요는 없을 듯?
+
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### STATISTICS #############################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Full_table.R line 191 kdms function needed 미리 불러야함
+
+stat_path <- kdms (pathway, group)
+#시간 꽤 걸림.
+#rownames(stat_path) <- rownames(pathway)
+stat_pathway <- cbind (rownames(pathway), stat_path, pathway)
+
+write.table(stat_pathway, file ='pathway_output/tables/stat_pathway.tsv' , 
+            sep='\t', col.names=TRUE,row.names=FALSE)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+###### + make phyloseq objects #######
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+#metadata에 # category 열을 지워버리고 picrust directory에 저장
+#pathway 결과에서 description을 쓸 것이므로 pathway name은 지워버리기.
+path_phyloseq <- import_picrust2("picrust/path_abun_unstrat_descrip_forlefse.tsv", 
+                                "picrust/metadata.tsv", trait = "PATHWAY")
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### FINDING SIGNIFICANT PATHWAYS #####################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+path_lefse <- run_lefse(path_phyloseq, "group")
+m_path_lefse <- data.frame(marker_table(path_lefse))
+
+write.table(m_path_lefse, 
+            file = "pathway_output/tables/lefse_pathway.tsv", sep='\t',
+            col.names=TRUE,row.names=FALSE)
+
+plot_ef_bar(path_lefse)+
+  scale_color_brewer(palette = 'Pastel1')+
+  scale_fill_brewer(palette = "Pastel1")+
+  theme_bw()+
+  theme(axis.line = element_line(size=1),
+        axis.ticks = element_line(size=1),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(hjust = 0.5, face="bold"),
+        plot.subtitle = element_text(hjust = 0.5))
+
+
+ggsave("pathway_output/LEfSe_pathway.png", width=10, height=10, units="in", device = "png")
+
+
+
+#그리는거는 graph R code에서~~
+
+
+
+##
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#아래는 기존의 KEGG pathway를 사용하는 경우 필요했던 코드들
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #* 기존 PICRUST1에서는 바로 pathway collapse가 python 코드로 실행이 가능했었다
 #* 하지만 PICRUST2는 지원하지 않음...
 #* 그래서 엄청나게 자잘한 여러개의 pathway로 구성되는 문제점이 있음
 #* 그래서 아얘 R에서 pathway collapse를 코딩해야함... ㅠㅠ
 #* 그래도 git 상에 PICRUST 개발자들에의해 제공되는 (보증되지는 않는) 코드가 있어서 아래 시행함
-########################################################################
-
-
-
-setwd("All_AD")
-
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ########################################################################
 #*** categorize_by_function.py 을 대체할 R function****

@@ -40,3 +40,4 @@ vignettes/*.pdf
 
 #cash
 .DS_Store
+**/.DS_Store
