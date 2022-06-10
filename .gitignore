@@ -38,4 +38,10 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+<<<<<<< HEAD
 
+=======
+#cash
+.DS_Store
+**/.DS_Store
+>>>>>>> 0709_PICRUSt

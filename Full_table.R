@@ -222,7 +222,6 @@ kdms <- function (data, group) {
 }
 
 
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### RELATIVE ABUNDANCE Function (for STACKED BAR GRAPH) #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -260,8 +259,6 @@ out_3c <- rela_abd_stat(rela_tax_3c, "tables/rela_Class.tsv")
 out_2p <- rela_abd_stat(rela_tax_2p, "tables/rela_Phylum.tsv")
 #out_k1 <- rela_abd_stat(rela_tax_k1, "tables/Kingdom.tsv") 
 # Kingdom is meaningless, there are only Bacterias
-
-
 
 
 
@@ -411,6 +408,35 @@ write.table(m_lefse_asv_all,
 write.table(m_lefse_asv_7s, 
             file = "tables/lefse_asv_7s.tsv", sep='\t',
             col.names=TRUE,row.names=FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

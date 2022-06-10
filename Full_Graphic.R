@@ -16,6 +16,7 @@ library(lefser)
 library(SummarizedExperiment)
 library(microbiomeMarker)
 library(pheatmap)
+library(Graphlan)
 
 theme_set(
   theme_bw()+
@@ -620,6 +621,7 @@ ggsave("other/LEfSeOTUtip.png", width=10, height=7, units="in", device = "png")
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### @ Cladogram #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 ##*****cladogram 오류 햐결 안됨...****##
 # library(ggtree)
