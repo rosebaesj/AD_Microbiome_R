@@ -8,7 +8,7 @@ library(dplyr)
 library(tidyverse)
 library(FSA)
 library(RColorBrewer)
-library(vegan)
+library(vegan) #adonis2
 library(rstatix)
 library(metagMisc)
 library(MicrobeR)
@@ -163,17 +163,18 @@ rela_tax_3c <- tax_glom(relaphyseq, taxrank = "Class")#, NArm=FALSE)
 rela_tax_2p <- tax_glom(relaphyseq, taxrank = "Phylum")#, NArm=FALSE)
 rela_tax_1k <- tax_glom(relaphyseq, taxrank = "Kingdom")#, NArm=FALSE)
 
-tax_7s <- data.frame(tax_table(rela_tax_7s))
-otu_7s <- data.frame(otuTable(rela_tax_7s))
 
-m_7s <- cbind(tax_7s, otu_7s)
-write.table(m_7s,file="tables/table_7s.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
-
-merge_tax_asv <- data.frame(tax_table(relaphyseq))
-merge_otu_asv <- data.frame(otuTable(relaphyseq))
-
-merge_asv <- cbind(merge_tax_asv, merge_otu_asv)
-write.table(merge_asv,file="tables/merge_asv.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
+# tax_7s <- data.frame(tax_table(rela_tax_7s))
+# otu_7s <- data.frame(otuTable(rela_tax_7s))
+# 
+# m_7s <- cbind(tax_7s, otu_7s)
+# write.table(m_7s,file="tables/table_7s.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
+# 
+# merge_tax_asv <- data.frame(tax_table(relaphyseq))
+# merge_otu_asv <- data.frame(otuTable(relaphyseq))
+# 
+# merge_asv <- cbind(merge_tax_asv, merge_otu_asv)
+# write.table(merge_asv,file="tables/merge_asv.tsv",sep='\t',col.names=TRUE,row.names=FALSE)
 
 
 
@@ -207,17 +208,22 @@ kdms <- function (data, group) {
     kwp <- rbind(kwp, kw$p.value)
     
     #Dunn Test, between groups
-    gg <- data.frame(cbind(t_data[,i], g))
-    colnames(gg) <- c('a', 'g')
-    dunn <- dunn_test(data=gg, a ~ g, p.adjust.method = "bonferroni")
-    dunnt <- rbind(dunnt, c(dunn$p.adj)) 
+    if (kw$p.value=="NaN") {
+      dunnt <- rbind(dunnt, NA) 
+    } else {
+      gg <- data.frame(cbind(t_data[,i], g))
+      colnames(gg) <- c('a', 'g')
+      dunn <- dunn_test(data=gg, a ~ g, p.adjust.method = "bonferroni")
+      dunnt <- rbind(dunnt, c(dunn$p.adj))       
+    }
+    
   }#takes time
   
   # View(dunn) #여기에서 나오는 그룹 순서대로 적으면 됨
   # View(m) #여기에서 나오는 그룹 순서대로 적으면 됨
   s <- cbind(kwp, dunnt, msd)
   colnames(s) <- c('Kruskal_test', 'Dunn_AD-AP', 'Dunn_AD-CON', 'Dunn_AP-CON',
-                      'AD_mean', 'AD_SD','AP_mean', 'AP_SD', 'CON_mean', 'CON_SD')
+                   'AD_mean', 'AD_SD','AP_mean', 'AP_SD', 'CON_mean', 'CON_SD')
   return(s)
 }
 
@@ -239,7 +245,7 @@ rela_abd_stat <- function(phyloseq, filepath){
   stat <- kdms(o, g)
   total <- rowMeans(o)
 
-  j <- data.frame(cbind(t, stat, total, o))
+  j <- data.frame(cbind(rownames(t), t, stat, total, o))
   write.table(j, file = filepath, sep='\t',col.names=TRUE,row.names=FALSE)
   return(j)
 }
@@ -258,7 +264,7 @@ out_4o <- rela_abd_stat(rela_tax_4o, "tables/rela_Order.tsv")
 out_3c <- rela_abd_stat(rela_tax_3c, "tables/rela_Class.tsv")
 out_2p <- rela_abd_stat(rela_tax_2p, "tables/rela_Phylum.tsv")
 #out_k1 <- rela_abd_stat(rela_tax_k1, "tables/Kingdom.tsv") 
-# Kingdom is meaningless, there are only Bacterias
+# Kingdom is meaningless, there are only Bacterias with total sums 1
 
 
 

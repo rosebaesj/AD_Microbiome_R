@@ -54,6 +54,7 @@ pathway <- read.table(file="picrust/path_abun_unstrat_descrip.tsv",
 rownames(pathway) <- pathway[,2]
 pathway <- pathway [,c(-1, -2)]
 
+#group 순서 주의!!
 metadata=read.table("qiime/metadata.tsv", header=TRUE)
 group <- metadata$group
 
@@ -71,7 +72,7 @@ group <- metadata$group
 ##################### STATISTICS #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Full_table.R line 191 kdms function needed 미리 불러야함
+#*** Full_table.R line 191 kdms function needed 미리 불러야함 ***#
 
 stat_path <- kdms (pathway, group)
 #시간 꽤 걸림.
@@ -80,6 +81,8 @@ stat_pathway <- cbind (rownames(pathway), stat_path, pathway)
 
 write.table(stat_pathway, file ='pathway_output/tables/stat_pathway.tsv' , 
             sep='\t', col.names=TRUE,row.names=FALSE)
+
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ###### + make phyloseq objects #######
