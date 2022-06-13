@@ -10,7 +10,7 @@
 # library(tidyverse)
 # library(FSA)
 # library(RColorBrewer)
-# library(vegan)
+library(vegan)
 # library(rstatix)
 # library(metagMisc)
 # library(MicrobeR)
@@ -19,9 +19,11 @@
 # library(pheatmap)
 # library(berryFunctions)
 # library(matrixTests)
-# library(rstatix)
+library(rstatix)
 # library(philr)
 library(stringr)
+library(psych)
+
 
 setwd("All_AD")
 getwd()
@@ -92,25 +94,37 @@ write.table(stat_behavior, file ='output_behavior/tables/stat_behavior.tsv' ,
 
 ####### + microbiome features ##########
 
+#function to make taxonomic to needed format
+cor_features <- function(data, sample_rows, feature_names){
+  c <- data[,c(sample_rows)]
+  c <- matrix(as.numeric(unlist(c)), nrow = nrow(c))
+  rownames(c) <- feature_names
+  colnames(c) <- colnames(data[,c(sample_rows)])
+  c <- t(c)
+  return(c)
+}
 
 #read it from results if you have erased "out_asv" or any other similar objects from environment
-#out_asv <- read.table("tables/rela_asv.tsv", header = TRUE)
+# out_asv <- read.table("tables/rela_asv.tsv", header = TRUE)
+# out_2p <- read.table("tables/rela_Phylum.tsv", header = TRUE)
+# out_3c <- read.table("tables/rela_Class.tsv", header = TRUE)
+# out_4o <- read.table("tables/rela_Order.tsv", header = TRUE)
+# out_5f <- read.table("tables/rela_Family.tsv", header = TRUE)
+# out_6g <- read.table("tables/rela_Genus.tsv", header = TRUE)
+# out_7s <- read.table("tables/rela_Species.tsv", header = TRUE)
 
-cor_asv <- out_asv[,c(20:ncol(out_asv))]
-rownames(cor_asv) <- out_asv[,1]
-cor_2p <- out_2p[,c(20:ncol(out_2p))]
-rownames(cor_2p) <- out_2p[,3]
-cor_3c <- out_3c[,c(20:ncol(out_3c))]
-rownames(cor_3c) <- out_3c[,4]
-cor_4o <- out_4o[,c(20:ncol(out_4o))]
-rownames(cor_4o) <- out_4o[,5]
-cor_5f <- out_5f[,c(20:ncol(out_5f))]
-rownames(cor_5f) <- out_5f[,6]
+
+cor_asv <- cor_features(out_asv, 20:ncol(out_asv), out_asv[,1])
+
+cor_2p <- cor_features(out_2p, 20:ncol(out_2p), out_2p[,3])
+cor_3c <- cor_features(out_3c, 20:ncol(out_3c), out_3c[,4])
+cor_4o <- cor_features(out_4o, 20:ncol(out_4o), out_4o[,5])
+cor_5f <- cor_features(out_5f, 20:ncol(out_5f), out_5f[,6])
 
 ############ +++ Species Genus 하나의 행으로 합치기 for species ####
 gf_6g <- str_c(out_6g$Genus, "_in_", out_6g$Family)
-cor_6g <- out_6g[,c(20:ncol(out_6g))]
-rownames(cor_6g) <- gf_6g
+cor_6g <- cor_features(out_6g, 20:ncol(out_6g), gf_6g)
+
 
 # ############ @+++ Species Genus 하나의 행으로 합치기 for species ####
 # sg_7s <- str_c(out_7s$Species, "_in_", out_7s$Genus)
@@ -120,13 +134,13 @@ rownames(cor_6g) <- gf_6g
 
 ####### + behavior features ##########
 
-cor_behavior <- behavior
+cor_behavior <- cor_features(behavior, 1:ncol(behavior), rownames(behavior))
+
 
 ###### + diversity features ##########
 # read it from results if you have erased "alpha_div", "stat_beta_div" objects from environment
 # alpha_div <- read.table("tables/stat_alpha_div.tsv", header = TRUE)
-cor_alpha <- alpha_div[,c(12:ncol(alpha_div))]
-rownames(cor_alpha) <- alpha_div[,1]
+cor_alpha <- cor_features(alpha_div, 12:ncol(alpha_div), alpha_div[,1])
 
 
 
@@ -135,8 +149,8 @@ rownames(cor_alpha) <- alpha_div[,1]
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ############### + make feature matrix #####################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-cor <- rbind(cor_6g, cor_behavior) #whatever you want
+# 
+# cor <- cbind(cor_6g, cor_behavior) #whatever you want
 
 
 
@@ -145,17 +159,54 @@ cor <- rbind(cor_6g, cor_behavior) #whatever you want
 ############### run correlation analysis #####################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-n_cor <- matrix(as.numeric(unlist(cor)), nrow = nrow(cor))
-colnames(n_cor)<- colnames(cor)
-rownames(n_cor)<- rownames(cor)
-t_cor <- t(n_cor)
-pearson <- cor(t_cor,  method = "pearson")
 
-bug_behav_cor <- pearson[1:nrow(cor_6g), (nrow(cor_6g)+1):nrow(pearson)]
+############### + Pearson with false discovery rated adjusted #####################
+bug_behav_fdr <- corr.test(cor_6g, cor_behavior, method = "pearson", adjust = "fdr")
+bug_alpha_fdr <- corr.test(cor_6g, cor_alpha, method = "pearson", adjust = "fdr")
+bug_bug_fdr <- corr.test(cor_6g, cor_2p, method = "pearson", adjust = "fdr")
+#this all so analysis non-adjusted p values
+#한 feature set만 넣으면 
+r <- bug_behav_fdr$r
+fdr <- bug_behav_fdr$p.adj
+none <- bug_behav_fdr$p
+#this is correlation matrix
 
-write.table(bug_behav_cor, file = "tables/bug_behav_cor.tsv", sep='\t',
-            col.names=TRUE,row.names=FALSE)
 
+####### + make coordination matrix ###########
+
+coord_cor <- function(cor_fdr){
+  coord = NULL
+  for (i in 1:ncol(cor_fdr$r)) {
+    for (j in 1: nrow(cor_fdr$r)){
+      #get stars for p
+      p <- cor_fdr$p[j,i]
+      if (is.na(p)) { ps <- c("NA")
+      } else if (p<=0.001) { ps <- c("***")
+      } else if (0.001<=p&&p<0.01) { ps <- c("**")
+      } else if (0.01<=p&&p<0.05) { ps <- c("*")
+      } else ps <- c("ns")
+      
+      #get stars for fdr adjusted p
+      f<- cor_fdr$p.adj[j,i]
+      if (is.na(f)) { fdrs <- c("NA")
+      } else if (f<=0.001) { fdrs <- c("***")
+      } else if (0.001<=f&&f<0.01) { fdrs <- c("**")
+      } else if (0.01<=f&&f<0.05) { fdrs <- c("*")
+      } else fdrs <- c("ns")
+      
+      coord = rbind(coord, c(colnames(cor_fdr$r)[i], rownames(cor_fdr$r)[j], 
+                             cor_fdr$r[j,i], p, f, ps, fdrs))
+    }
+  }
+  return(coord)
+}
+
+coord_bug_behav <- coord_cor(bug_behav_fdr)
+coord_bug_alpha <- coord_cor(bug_alpha_fdr)
+coord_bug_bug <- coord_cor(bug_bug_fdr)
+  
+####### + make triangular coordination matrix ###########
+  
 
 
 ##

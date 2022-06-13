@@ -1,22 +1,24 @@
 #library에 없는게 있으면 보통 install.packages("")로 설치하면 되고 안되는 경우엔 검색하면 바로 나옴
-library(ape)
+# library(ape)
 library(ggplot2)
 library(ggpubr)
 library(phyloseq)
 library(dplyr)
-library(tidyverse)
-library(FSA)
+library(ggtree)
+# library(tidyverse)
+# library(FSA)
 library(RColorBrewer)
 library(vegan)
 library(rstatix)
-library(metagMisc)
-library(MicrobeR)
-library(mia)
-library(lefser)
-library(SummarizedExperiment)
-library(microbiomeMarker)
+# library(metagMisc)
+# library(MicrobeR)
+# library(mia)
+# library(lefser)
+# library(SummarizedExperiment)
+# library(microbiomeMarker)
 library(pheatmap)
-library(Graphlan)
+# library(Graphlan)
+# library("corrplot")
 
 theme_set(
   theme_bw()+
@@ -618,6 +620,13 @@ plot_ef_bar(lefseOTUtip)+
 
 ggsave("other/LEfSeOTUtip.png", width=10, height=7, units="in", device = "png")
 
+
+
+
+
+
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### @ Cladogram #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -654,6 +663,10 @@ write.table(m_rela_table,	file	=	"phyloseq/m_rela_table.tsv",	sep	=	'\t',	col.na
 #           Taxonomy 열 -> ; 로 부분되어 있는 것 |로 구분 
 # Group 행
 # Sample 행
+
+
+
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ##################### + Heatmap + taxonomy #############################
@@ -704,8 +717,63 @@ plot_ef_dot(lefse)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### + correlation  #############################
+##################### CORRELATION GRAPHS  #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+##################### + heatmap  #############################
+######### @ NA 있으면 오류#######
+
+coord_NAx <- data.frame(coord_bug_bug[complete.cases(coord_bug_bug),])
+
+colnames(coord_NAx) <- c("Phylum", "Genus", "R", "p", "fdr", "p_", "fdr_")
+coord_NAx$R <- as.numeric(coord_NAx$R) #needs to be numeric to be colored in geom_tile
+
+sub_coord_NAx <- coord_NAx[c(1:10,80:89,159:168),]
+
+
+
+
+
+
+
+#그림 오래 걸림...
+ggplot(sub_coord_NAx, aes(x=Phylum, y=Genus, fill=R))+
+  geom_tile()+
+  scale_fill_gradient2(low="skyblue", mid = "white", high = "pink")+
+  geom_text( aes(label= ifelse(fdr_=="ns",p_,fdr_)), 
+             color = ifelse(sub_coord_NAx$fdr_=="ns","grey","black"),
+             alpha = ifelse(sub_coord_NAx$p_=="ns", 0, 1)) +
+  coord_fixed() #keep them square, not rectangle
+  
+
+ggsave("output_correlation/sub.png", width=20, height=20, units="in", device = "png")
+
+rowSums(is.na(coord_bug_behav[,3:5]))==0
+
+
+#MicrobeR::Microbiome.Heatmap	
+#microbiomeMarker::plot_heatmap	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##################### CORRELATION GRAPHS 예전 코드 #############################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 
 #****가장 많은 종 20개 찾기******
