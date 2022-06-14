@@ -182,23 +182,23 @@ cut_rela_group <- function (out, cut = c) {
 
 
 
-plot_rela_group(out_2p, level = 2)
+plot_rela_group(out_2p, level = 3)
 ggsave("relative_abd/Group_Phylum.png", width=6, height=5, units="in", device = "png")
 
-plot_rela_group(out_3c , level = 3)
+plot_rela_group(out_3c , level = 4)
 ggsave("relative_abd/Group_Class.png", width=6, height=5, units="in", device = "png")
 
 
-nopalette_plot_rela_group(out_4o , level = 4)
+nopalette_plot_rela_group(out_4o , level = 5)
 ggsave("relative_abd/Sample_Order.png", width=10, height=5, units="in", device = "png")
 
-nopalette_plot_rela_group(out_5f , level = 5)
+nopalette_plot_rela_group(out_5f , level = 6)
 ggsave("relative_abd/Sample_Family.png", width=10, height=5, units="in", device = "png")
 
-nopalette_plot_rela_group(out_cut_6g , level = 6)
+nopalette_plot_rela_group(out_cut_6g , level = 7)
 ggsave("relative_abd/Sample_Genus.png", width=14, height=5, units="in", device = "png")
 
-nopalette_plot_rela_group(out_weird , level = 7)
+nopalette_plot_rela_group(out_weird , level = 8)
 ggsave("relative_abd/Sample_Family.png", width=14, height=5, units="in", device = "png")
 
 cut_5f <- cut_rela_group(out_5f, cut = 10)
