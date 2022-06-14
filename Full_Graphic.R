@@ -242,8 +242,8 @@ richness$group <- metadata$group
 richness$group <- factor (richness$group, levels = c("CON", "AD", "AP"))
 
 #간단하게 전체적으로 살펴보는 방법
-##plot_richness(rphyseq, sortby = META$group)
-plot_richness(physeq, sortby = META$group)
+plot_richness(rphyseq, sortby = META$group)
+##plot_richness(physeq, sortby = META$group)
 
 ##ppplot에서 군별 paired 분석에 대한 pvalue 표기하려면 pair를 정해줘야함.
 pair <- list (c("AD", "AP"), c("AD", "CON"), c("AP", "CON"))
