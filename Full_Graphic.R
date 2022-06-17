@@ -779,7 +779,7 @@ ggplot(coord_NAx, aes(x=name1, y=name2, fill=R))+
   coord_fixed() #keep them square, not rectangle
 #글씨는 따로 넣어야 할 듯...
 
-ggsave("output_correlation/bug_self_10.png", width=5, height=5, units="in", device = "png")
+ggsave("output_correlation/bug_self_10_.png", width=5, height=5, units="in", device = "png")
 
 rowSums(is.na(coord_bug_behav[,3:5]))==0
 
