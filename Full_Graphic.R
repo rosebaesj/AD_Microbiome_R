@@ -726,10 +726,10 @@ plot_ef_dot(lefse)
 coord_NAx <- data.frame(coord_bug_bug[complete.cases(coord_bug_bug),])
 
 
-colnames(coord_NAx) <- c("Phylum", "Genus", "R", "p", "fdr", "p_", "fdr_")
+#colnames(coord_NAx) <- c("Phylum", "Genus", "R", "p", "fdr", "p_", "fdr_")
 coord_NAx$R <- as.numeric(coord_NAx$R) #needs to be numeric to be colored in geom_tile
 
-sub_coord_NAx <- coord_NAx[c(1:10,80:89,159:168),]
+#sub_coord_NAx <- coord_NAx[c(1:10,80:89,159:168),]
 
 
 #그림 오래 걸림...
@@ -749,6 +749,43 @@ ggsave("output_correlation/sub.png", width=20, height=20, units="in", device = "
 rowSums(is.na(coord_bug_behav[,3:5]))==0
 
 
+
+
+#if there's NA in the data, can't graph. so remove NAs
+coord_NAx <- data.frame(coord_bug_self[complete.cases(coord_bug_self),])
+
+coord_NAx$R <- as.numeric(coord_NAx$R) #needs to be numeric to be colored in geom_tile
+
+# sub_coord_NAx <- coord_NAx[c(1:10,80:89,159:168),]
+
+
+#그림 오래 걸림...
+
+ggplot(coord_NAx, aes(x=name1, y=name2, fill=R))+
+  geom_tile()+
+  scale_fill_gradient2(low="skyblue", mid = "white", high = "pink")+
+  geom_text( aes(label= ifelse(fdr_=="ns",p_,fdr_)), 
+             color = ifelse(coord_NAx$fdr_=="ns","grey","black"),
+             alpha = ifelse(coord_NAx$p_=="ns", 0, 1)) +
+  #geom_text( aes(label= ifelse(name1==name2, name, "")))+
+  scale_y_discrete()+
+  scale_x_discrete(limits=rev)+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  coord_fixed() #keep them square, not rectangle
+#글씨는 따로 넣어야 할 듯...
+
+ggsave("output_correlation/bug_self_10.png", width=5, height=5, units="in", device = "png")
+
+rowSums(is.na(coord_bug_behav[,3:5]))==0
+
+
+
+
 #MicrobeR::Microbiome.Heatmap	
 #microbiomeMarker::plot_heatmap	
 
@@ -758,76 +795,6 @@ rowSums(is.na(coord_bug_behav[,3:5]))==0
 
 
 
-
-
-
-
-
-
-
-
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### CORRELATION GRAPHS 예전 코드 #############################
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-
-
-#****가장 많은 종 20개 찾기******
-topN <- 20
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### ++ ASV => relaphyseq  #############################
-most_abd <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), relaphyseq) 
-
-
-##################### ++ tax_glom => rela_tax  #############################
-most_abd <- sort(taxa_sums(rela_tax), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), rela_tax) 
-
-most_abd <- sort(taxa_sums(rela_tax_g), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), rela_tax_g) 
-
-##################### ++ tip_glom => rela_tip  #############################
-most_abd <- sort(taxa_sums(rela_tip), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), rela_tip) 
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-otu_20 <- t(as.matrix(relaphyseq20@otu_table@.Data))
-tax_20 <- data.frame(relaphyseq20@tax_table)
-View(tax_20)
-
-df_otu_20 <- data.frame(otu_20)
-colnames(df_otu_20) ### 에서 나온 값들 찾아서 이름 넣기
-
-## colnames(otu_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
-##                       'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
-##                       'g__Bacteroides_1', 'g__Bacteroides_2', 'g__Muribaculaceae_s_Unid', 'g__Muribaculaceae', 
-##                       's__uncultured_bacterium_1', 's__uncultured_Bacteroidales_1', 's__uncultured_Bacteroidales_2', 's__uncultured_Bacteroidales_3', 
-##                       's__uncultured_bacterium_2', 'g__Helicobacter', 'f__Lachnospiraceae', 's__uncultured_Clostridiales')
-
-# colnames(df_otu_20) <-c('1g__Lactobacillus', '2s__Lactobacillus_intestinalis', '3g__Helicobacter', '4s__uncultured_Bacteroidales', 
-#                        '5s__uncultured_Bacteroidales', '6s__uncultured_Bacteroidales', '7s__uncultured_bacterium', '8s__uncultured_bacterium', 
-#                        '9g__Muribaculaceae', '10s__unidentified', '11g__Bacteroides', '12g__Bacteroides', 
-#                        '13s__uncultured_bacterium', '14s__uncultured_bacterium', '15g__Lactobacillus', '16g__Lactobacillus', 
-#                        '17c__Bacilli', '18c__Bacilli', '19c__Bacilli', '20s__uncultured_Clostridiales')
-# ##이름 겹치면 그래프 덮어쓰기 되니까 주의
-
-colnames(df_otu_20) <- tax_20$Genus
-
-#tax <- physeq20@tax_table@.Data
 
 #***correlation matrix****
 
