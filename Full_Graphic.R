@@ -32,7 +32,7 @@ theme_set(
 ))
 
 getwd()
-setwd("All_AD")
+setwd("AD_microbiome_data/All_AD")
 #이건 자기가 설정한 디렉토리 잘 찾아서 진행하기
 
 
@@ -44,7 +44,7 @@ setwd("All_AD")
 # finding order... 보고 적당히 수기로 해야할 듯
 
 plot_rela_group <- function (out, level = l) {
-
+  level <- level + 1
   Levels = c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 
   r <- data.frame(out)
@@ -421,7 +421,7 @@ ggsave("alpha_div/Fisher.png", width=3, height=3, units="in", device = "png")
 ##################### + PCoA  - bray method #############################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-#calculating bray curtis distance matrix
+###****calculating bray curtis distance matrix****##
 PCoA_bray <- ordinate(relaphyseq, 
                          method ="PCoA", #defalt 가 DCA라는데
                          distance = "bray")

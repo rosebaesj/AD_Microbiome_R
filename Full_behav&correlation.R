@@ -25,7 +25,7 @@ library(stringr)
 library(psych)
 
 
-setwd("All_AD")
+setwd("AD_microbiome_data/All_AD")
 getwd()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

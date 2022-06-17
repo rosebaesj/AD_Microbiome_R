@@ -22,7 +22,7 @@ library(rstatix)
 library(philr)
 
 getwd()
-setwd("All_AD")
+setwd("AD_microbiome_data/All_AD")
 #이건 자기가 설정한 디렉토리 잘 찾아서 진행하기
 
 
@@ -110,6 +110,7 @@ META=sample_data(metadata)
 #	check	that	your	OTU	names	are	consistent	across	objects
 taxa_names(TAX)
 taxa_names(OTU)
+# check the OTU type is consistent
 taxa_names(phy_tree)
 
 #	make	sure	files	have	the	same	sample	names	
@@ -542,29 +543,28 @@ topN <- 20
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-##################### ++ @ASV => relaphyseq  #############################
-most_abd <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
+# ##################### ++ @ASV => relaphyseq  #############################
+# most_abd <- sort(taxa_sums(relaphyseq), TRUE)[1:topN]
+# print(most_abd)
+# #physeq20 <- prune_taxa(names(most_abd), physeq)
+# relaphyseq20 <- prune_taxa(names(most_abd), relaphyseq) 
+
+# ##################### ++ @tax_glom => rela_tax  #############################
+# most_abd <- sort(taxa_sums(rela_tax), TRUE)[1:topN]
+# print(most_abd)
+# #physeq20 <- prune_taxa(names(most_abd), physeq)
+# relaphyseq20 <- prune_taxa(names(most_abd), rela_tax) 
+
+most_abd <- sort(taxa_sums(rela_tax_6g), TRUE)[1:topN]
 print(most_abd)
 #physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), relaphyseq) 
-
-
-##################### ++ @tax_glom => rela_tax  #############################
-most_abd <- sort(taxa_sums(rela_tax), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), rela_tax) 
-
-most_abd <- sort(taxa_sums(rela_tax_g), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), rela_tax_g) 
-
-##################### ++ @tip_glom => rela_tip  #############################
-most_abd <- sort(taxa_sums(rela_tip), TRUE)[1:topN]
-print(most_abd)
-#physeq20 <- prune_taxa(names(most_abd), physeq)
-relaphyseq20 <- prune_taxa(names(most_abd), rela_tip) 
+relaphyseq20 <- prune_taxa(names(most_abd), rela_tax_6g) 
+# 
+# ##################### ++ @tip_glom => rela_tip  #############################
+# most_abd <- sort(taxa_sums(rela_tip), TRUE)[1:topN]
+# print(most_abd)
+# #physeq20 <- prune_taxa(names(most_abd), physeq)
+# relaphyseq20 <- prune_taxa(names(most_abd), rela_tip) 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -573,22 +573,10 @@ tax_20 <- data.frame(relaphyseq20@tax_table)
 View(tax_20)
 
 df_otu_20 <- data.frame(otu_20)
-colnames(df_otu_20) ### 에서 나온 값들 찾아서 이름 넣기
+colnames(df_otu_20)
+rownames(tax_20) ##순서 맞는지 확인
+colnames(df_otu_20) <- tax_20$Genus 
 
-## colnames(otu_20) <-c('g__Faecalibaculum', 'g__Lactobacillus_1', 's__Lactobacillus_intestinalis', 'c__Bacilli_1', 
-##                       'c__Bacilli_2', 'c__Bacilli_3', 'g__Lactobacillus_2', 'g__Lactobacillus_3', 
-##                       'g__Bacteroides_1', 'g__Bacteroides_2', 'g__Muribaculaceae_s_Unid', 'g__Muribaculaceae', 
-##                       's__uncultured_bacterium_1', 's__uncultured_Bacteroidales_1', 's__uncultured_Bacteroidales_2', 's__uncultured_Bacteroidales_3', 
-##                       's__uncultured_bacterium_2', 'g__Helicobacter', 'f__Lachnospiraceae', 's__uncultured_Clostridiales')
-
-# colnames(df_otu_20) <-c('1g__Lactobacillus', '2s__Lactobacillus_intestinalis', '3g__Helicobacter', '4s__uncultured_Bacteroidales', 
-#                        '5s__uncultured_Bacteroidales', '6s__uncultured_Bacteroidales', '7s__uncultured_bacterium', '8s__uncultured_bacterium', 
-#                        '9g__Muribaculaceae', '10s__unidentified', '11g__Bacteroides', '12g__Bacteroides', 
-#                        '13s__uncultured_bacterium', '14s__uncultured_bacterium', '15g__Lactobacillus', '16g__Lactobacillus', 
-#                        '17c__Bacilli', '18c__Bacilli', '19c__Bacilli', '20s__uncultured_Clostridiales')
-# ##이름 겹치면 그래프 덮어쓰기 되니까 주의
-
-colnames(df_otu_20) <- tax_20$Genus
 
 #tax <- physeq20@tax_table@.Data
 
