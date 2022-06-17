@@ -145,10 +145,18 @@ cor_alpha <- cor_features(alpha_div, 12:ncol(alpha_div), alpha_div[,1])
 
 
 
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ############### + make feature matrix #####################
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+############### ++ pick top 20 #####################
+
+cor_6g_10 <- cor_6g[,order(colSums(-cor_6g))][,1:10] #맨뒤에 몇번째 ㄱ까지 할건지 고르기
+
+
+
+
+
 # 
 # cor <- cbind(cor_6g, cor_behavior) #whatever you want
 
@@ -160,26 +168,36 @@ cor_alpha <- cor_features(alpha_div, 12:ncol(alpha_div), alpha_div[,1])
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-############### + Pearson with false discovery rated adjusted #####################
-bug_behav_fdr <- corr.test(cor_6g, cor_behavior, method = "pearson", adjust = "fdr")
-bug_alpha_fdr <- corr.test(cor_6g, cor_alpha, method = "pearson", adjust = "fdr")
-bug_bug_fdr <- corr.test(cor_6g, cor_2p, method = "pearson", adjust = "fdr")
-#this all so analysis non-adjusted p values
-#한 feature set만 넣으면 
-r <- bug_behav_fdr$r
-fdr <- bug_behav_fdr$p.adj
-none <- bug_behav_fdr$p
-#this is correlation matrix
+############### + Spearman with false discovery rated adjusted #####################
+bug_behav_fdr <- corr.test(cor_6g, cor_behavior, method = "spearman", adjust = "fdr")
+bug_alpha_fdr <- corr.test(cor_6g, cor_alpha, method = "spearman", adjust = "fdr")
+bug_bug_fdr <- corr.test(cor_6g, cor_2p, method = "spearman", adjust = "fdr")
+
+
+
+
+bug_self_fdr <- corr.test(cor_6g_10, cor_6g_10, method = "spearman", adjust = "fdr")
+
+
+
+
+
+
+# #한 feature set만 넣으면 
+# r <- bug_behav_fdr$r
+# fdr <- bug_behav_fdr$p.adj
+# none <- bug_behav_fdr$p
+# #this is correlation matrix
 
 
 ####### + make coordination matrix ###########
 
-coord_cor <- function(cor_fdr){
+coord_cor_cor <- function(cor_cor_fdr, name = "name"){
   coord = NULL
-  for (i in 1:ncol(cor_fdr$r)) {
-    for (j in 1: nrow(cor_fdr$r)){
+  for (i in 1:ncol(cor_cor_fdr$r)) {
+    for (j in 1: nrow(cor_cor_fdr$r)){
       #get stars for p
-      p <- cor_fdr$p[j,i]
+      p <- cor_cor_fdr$p[j,i]
       if (is.na(p)) { ps <- c("NA")
       } else if (p<=0.001) { ps <- c("***")
       } else if (0.001<=p&&p<0.01) { ps <- c("**")
@@ -187,26 +205,75 @@ coord_cor <- function(cor_fdr){
       } else ps <- c("ns")
       
       #get stars for fdr adjusted p
-      f<- cor_fdr$p.adj[j,i]
+      f<- cor_cor_fdr$p.adj[j,i]
       if (is.na(f)) { fdrs <- c("NA")
       } else if (f<=0.001) { fdrs <- c("***")
       } else if (0.001<=f&&f<0.01) { fdrs <- c("**")
       } else if (0.01<=f&&f<0.05) { fdrs <- c("*")
       } else fdrs <- c("ns")
       
-      coord = rbind(coord, c(colnames(cor_fdr$r)[i], rownames(cor_fdr$r)[j], 
-                             cor_fdr$r[j,i], p, f, ps, fdrs))
+      coord = rbind(coord, c(colnames(cor_cor_fdr$r)[i], rownames(cor_cor_fdr$r)[j], 
+                             cor_cor_fdr$r[j,i], p, f, ps, fdrs))
     }
   }
   return(coord)
 }
 
-coord_bug_behav <- coord_cor(bug_behav_fdr)
-coord_bug_alpha <- coord_cor(bug_alpha_fdr)
-coord_bug_bug <- coord_cor(bug_bug_fdr)
-  
+coord_bug_behav <- coord_cor_cor(bug_behav_fdr)
+coord_bug_alpha <- coord_cor_cor(bug_alpha_fdr)
+coord_bug_bug <- coord_cor_cor(bug_bug_fdr)
+
+coord_bug_self <- coord_cor_cor(bug_self_fdr)
+
+
 ####### + make triangular coordination matrix ###########
-  
+
+coord_cor_self <- function(cor_self_fdr, name1 = "name1", name2 = "name2"){
+  coord = NULL
+  t <- t(cor_self_fdr$p)
+  for (i in 1:ncol(cor_self_fdr$r)) {
+      for (j in 1:i){
+      #get stars for p
+      p <- cor_self_fdr$p[i,j]
+      if (is.na(p)) { ps <- c("NA")
+      } else if (p<=0.001) { ps <- c("***")
+      } else if (0.001<=p&&p<0.01) { ps <- c("**")
+      } else if (0.01<=p&&p<0.05) { ps <- c("*")
+      } else ps <- c("ns")
+      
+      #get stars for fdr adjusted p
+      
+      f<- cor_self_fdr$p.adj[i,j]
+      if (is.na(f)) { fdrs <- c("NA")
+      } else if (f<=0.001) { fdrs <- c("***")
+      } else if (0.001<=f&&f<0.01) { fdrs <- c("**")
+      } else if (0.01<=f&&f<0.05) { fdrs <- c("*")
+      } else fdrs <- c("ns")
+      
+      coord = data.frame(rbind(coord, c(colnames(cor_self_fdr$r)[i], rownames(cor_self_fdr$r)[j], 
+                             cor_self_fdr$r[j,i], p, f, ps, fdrs, colnames(cor_self_fdr$r)[i])))
+    }
+  }
+  colnames(coord) <- c("name1", "name2", "R", "p", "fdr", "p_", "fdr_", "name")
+  coord$name1 <- factor(coord$name1, levels = colnames(bug_self_fdr$r), order = TRUE)
+  coord$name2 <- factor(coord$name2, levels = colnames(bug_self_fdr$r), order = TRUE)
+  coord$R <- as.numeric(coord$R) 
+  return(coord)
+}
+
+
+coord_bug_self <- coord_cor_self(bug_self_fdr, name1 = "Genus1", name2 = "Genus2")
+
+
+coord_bug_self <- coord_cor_cor(bug_self_fdr)
+
+
+
+
+
+
+
+
 
 
 ##

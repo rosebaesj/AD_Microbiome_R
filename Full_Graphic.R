@@ -721,19 +721,15 @@ plot_ef_dot(lefse)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ##################### + heatmap  #############################
-######### @ NA 있으면 오류#######
 
+#if there's NA in the data, can't graph. so remove NAs
 coord_NAx <- data.frame(coord_bug_bug[complete.cases(coord_bug_bug),])
+
 
 colnames(coord_NAx) <- c("Phylum", "Genus", "R", "p", "fdr", "p_", "fdr_")
 coord_NAx$R <- as.numeric(coord_NAx$R) #needs to be numeric to be colored in geom_tile
 
 sub_coord_NAx <- coord_NAx[c(1:10,80:89,159:168),]
-
-
-
-
-
 
 
 #그림 오래 걸림...
@@ -743,6 +739,8 @@ ggplot(sub_coord_NAx, aes(x=Phylum, y=Genus, fill=R))+
   geom_text( aes(label= ifelse(fdr_=="ns",p_,fdr_)), 
              color = ifelse(sub_coord_NAx$fdr_=="ns","grey","black"),
              alpha = ifelse(sub_coord_NAx$p_=="ns", 0, 1)) +
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  
   coord_fixed() #keep them square, not rectangle
   
 

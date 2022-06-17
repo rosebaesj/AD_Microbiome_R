@@ -570,12 +570,19 @@ relaphyseq20 <- prune_taxa(names(most_abd), rela_tax_6g)
 
 otu_20 <- t(as.matrix(relaphyseq20@otu_table@.Data))
 tax_20 <- data.frame(relaphyseq20@tax_table)
-View(tax_20)
 
-df_otu_20 <- data.frame(otu_20)
-colnames(df_otu_20)
+cor_otu_20 <- data.frame(otu_20)
+colnames(cor_otu_20)
 rownames(tax_20) ##순서 맞는지 확인
-colnames(df_otu_20) <- tax_20$Genus 
+colnames(cor_otu_20) <- tax_20$Genus 
+
+bug_fdr <- corr.test(cor_otu_20, method = "spearman", adjust = "fdr")
+
+
+
+
+
+
 
 
 #tax <- physeq20@tax_table@.Data
