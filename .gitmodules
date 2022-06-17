@@ -1,0 +1,3 @@
+[submodule "AD_microbiome_data"]
+	path = AD_microbiome_data
+	url = https://github.com/rosebaesj/AD_microbiome_data.git
